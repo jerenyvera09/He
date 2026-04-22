@@ -70,6 +70,22 @@ const hint = $('#hint');
 const flash = $('#flash');
 const shootingLayer = $('#shooting');
 
+// -----------------------------
+// Performance: ajustes para móvil
+// -----------------------------
+
+const mediaCoarse = window.matchMedia ? window.matchMedia('(pointer: coarse)') : null;
+const mediaFine = window.matchMedia ? window.matchMedia('(pointer: fine)') : null;
+const mediaSmall = window.matchMedia ? window.matchMedia('(max-width: 600px)') : null;
+
+function isMobileLike(){
+  return Boolean((mediaCoarse && mediaCoarse.matches) || (mediaSmall && mediaSmall.matches));
+}
+
+function canvasDprCap(){
+  return isMobileLike() ? 1 : 2;
+}
+
 let typingTimer = null;
 let typingIndex = 0;
 let typingText = '';
@@ -89,7 +105,9 @@ function buildStars(){
   const stars = $('#stars');
   if (!stars) return;
   const rnd = mulberry32(20260422);
-  const count = Math.min(140, Math.floor((window.innerWidth * window.innerHeight) / 14000));
+  const base = Math.floor((window.innerWidth * window.innerHeight) / 14000);
+  const cap = isMobileLike() ? 80 : 140;
+  const count = Math.max(26, Math.min(cap, Math.floor(base * (isMobileLike() ? 0.62 : 1))));
   stars.innerHTML = '';
 
   for (let i = 0; i < count; i++){
@@ -136,7 +154,7 @@ function startShootingStars(){
 
   const schedule = () => {
     // Intervalos amplios para no saturar
-    const delay = 2400 + rnd() * 5200;
+    const delay = (isMobileLike() ? 3600 : 2400) + rnd() * (isMobileLike() ? 7400 : 5200);
     shootingTimer = window.setTimeout(() => {
       spawnShootingStar(rnd);
       schedule();
@@ -298,7 +316,7 @@ let pieces = [];
 let confettiRAF = null;
 
 function resizeCanvas(){
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const dpr = Math.min(canvasDprCap(), window.devicePixelRatio || 1);
   confettiCanvas.width = Math.floor(window.innerWidth * dpr);
   confettiCanvas.height = Math.floor(window.innerHeight * dpr);
   confettiCanvas.style.width = window.innerWidth + 'px';
@@ -307,6 +325,7 @@ function resizeCanvas(){
 }
 
 function launchConfetti(intensity = 140){
+  if (isMobileLike()) intensity = Math.max(60, Math.floor(intensity * 0.62));
   const colors = ['#a855f7', '#22d3ee', '#1d4ed8', '#fb7185', '#ffffff'];
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -397,7 +416,7 @@ let vortexRAF = null;
 let vortexParticles = [];
 
 function resizeVortex(){
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const dpr = Math.min(canvasDprCap(), window.devicePixelRatio || 1);
   vortexCanvas.width = Math.floor(window.innerWidth * dpr);
   vortexCanvas.height = Math.floor(window.innerHeight * dpr);
   vortexCanvas.style.width = window.innerWidth + 'px';
@@ -412,7 +431,8 @@ function startVortex(durationMs = 1200){
   const cy = h / 2;
 
   vortexParticles = [];
-  const count = Math.min(210, Math.max(130, Math.floor((w * h) / 9000)));
+  const baseCount = Math.min(210, Math.max(130, Math.floor((w * h) / 9000)));
+  const count = isMobileLike() ? Math.max(90, Math.floor(baseCount * 0.62)) : baseCount;
   const palette = ['#a855f7', '#22d3ee', '#1d4ed8', '#ffffff'];
 
   for (let i = 0; i < count; i++){
@@ -547,6 +567,11 @@ window.addEventListener('resize', () => {
   resizeVortex();
 });
 
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stopShootingStars();
+  else startShootingStars();
+});
+
 
 // -----------------------------
 // Parallax suave (ligero)
@@ -554,6 +579,18 @@ window.addEventListener('resize', () => {
 
 function setParallaxFromEvent(ev){
   if (!scene || !panel) return;
+  lastParallaxEvent = ev;
+  if (!parallaxRAF) parallaxRAF = requestAnimationFrame(applyParallax);
+}
+
+let parallaxRAF = null;
+let lastParallaxEvent = null;
+
+function applyParallax(){
+  parallaxRAF = null;
+  const ev = lastParallaxEvent;
+  if (!ev || !scene || !panel) return;
+
   const rect = panel.getBoundingClientRect();
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;
@@ -564,8 +601,9 @@ function setParallaxFromEvent(ev){
   const nx = Math.max(-1, Math.min(1, (ex - cx) / (rect.width / 2)));
   const ny = Math.max(-1, Math.min(1, (ey - cy) / (rect.height / 2)));
 
-  const px = (nx * 10).toFixed(2) + 'px';
-  const py = (ny * 8).toFixed(2) + 'px';
+  const scale = isMobileLike() ? 0.55 : 1;
+  const px = (nx * 10 * scale).toFixed(2) + 'px';
+  const py = (ny * 8 * scale).toFixed(2) + 'px';
   scene.style.setProperty('--px', px);
   scene.style.setProperty('--py', py);
 }
@@ -640,10 +678,11 @@ if (subline) subline.textContent = 'Que esta noche te recuerde lo valiosa que er
 if (btnOpen) btnOpen.addEventListener('click', openExperience);
 
 if (scene){
-  scene.addEventListener('pointermove', setParallaxFromEvent);
-  scene.addEventListener('pointerleave', resetParallax);
-  scene.addEventListener('touchmove', setParallaxFromEvent, { passive: true });
-  scene.addEventListener('touchend', resetParallax);
+  // En móvil (touch), el parallax suele causar lag.
+  if (!mediaFine || mediaFine.matches){
+    scene.addEventListener('pointermove', setParallaxFromEvent);
+    scene.addEventListener('pointerleave', resetParallax);
+  }
 }
 
 if (btnCelebrate){

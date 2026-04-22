@@ -610,6 +610,15 @@ body{
   .photoStage{min-height: 440px}
 }
 
+/* Optimización móvil: menos blur/sombras (mejor FPS) */
+@media (max-width: 600px), (pointer: coarse){
+  .introInner{backdrop-filter: blur(12px)}
+  .panel{backdrop-filter: blur(12px)}
+  .frame{box-shadow: 0 14px 48px rgba(0,0,0,.42)}
+  .star{filter: drop-shadow(0 0 7px rgba(255,255,255,.35))}
+  .shoot{filter: drop-shadow(0 0 10px rgba(255,255,255,.18)) drop-shadow(0 0 22px rgba(34,211,238,.10))}
+}
+
 /* Reduce motion */
 @media (prefers-reduced-motion: reduce){
   *{animation:none !important; transition:none !important}
