@@ -426,10 +426,13 @@ body{
   width:100%;
   height:100%;
   object-fit:cover;
+  object-position: var(--op, 50% 35%);
   display:block;
   filter: saturate(1.08) contrast(1.03);
   transform: scale(1.02);
   transition: transform 600ms ease, filter 600ms ease;
+  position:relative;
+  z-index:1;
 }
 
 .frame::before{
@@ -454,6 +457,26 @@ body{
   backdrop-filter: blur(12px);
   color:rgba(244,245,255,.92);
   font-size:12px;
+  z-index:2;
+}
+
+/* Si la foto es retrato, evita recorte: contain + fondo sutil */
+.frame.portrait img{
+  object-fit: contain;
+  transform: scale(1);
+}
+
+.frame.portrait::after{
+  content:"";
+  position:absolute;
+  inset:-10%;
+  background-image: var(--bg);
+  background-size: cover;
+  background-position: var(--op, 50% 35%);
+  transform: scale(1.08);
+  opacity: .24;
+  filter: blur(18px) saturate(1.08);
+  z-index:0;
 }
 
 .frame.primary{left:0; top:0; width: min(640px, 100%); height: 320px; position:relative}
@@ -467,6 +490,7 @@ body{
 @keyframes floaty2{0%,100%{transform: translateY(0) rotate(6deg)} 50%{transform: translateY(-8px) rotate(5deg)}}
 
 .frame:hover img{transform: scale(1.06); filter: saturate(1.16) contrast(1.06)}
+.frame.portrait:hover img{transform: scale(1.02)}
 
 /* Mensaje */
 .lines{
@@ -617,6 +641,7 @@ body{
   .frame{box-shadow: 0 14px 48px rgba(0,0,0,.42)}
   .star{filter: drop-shadow(0 0 7px rgba(255,255,255,.35))}
   .shoot{filter: drop-shadow(0 0 10px rgba(255,255,255,.18)) drop-shadow(0 0 22px rgba(34,211,238,.10))}
+  .frame.portrait::after{filter:none; opacity:.18}
 }
 
 /* Reduce motion */

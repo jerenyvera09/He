@@ -212,10 +212,36 @@ async function setFirstWorkingSrc(imgEl, candidates){
     const ok = await probeImage(src);
     if (ok){
       imgEl.src = src;
+      imgEl.decoding = 'async';
+      imgEl.loading = 'eager';
+
+      const apply = () => applySmartPhotoFit(imgEl);
+      if (imgEl.complete) apply();
+      else imgEl.addEventListener('load', apply, { once: true });
       return true;
     }
   }
   return false;
+}
+
+function applySmartPhotoFit(imgEl){
+  const frame = imgEl.closest('.frame');
+  if (!frame) return;
+  const src = imgEl.currentSrc || imgEl.src;
+  if (src) frame.style.setProperty('--bg', `url("${src}")`);
+
+  const w = imgEl.naturalWidth || 0;
+  const h = imgEl.naturalHeight || 0;
+  if (!w || !h) return;
+
+  const ratio = w / h;
+  const portrait = ratio < 0.92;
+  frame.classList.toggle('portrait', portrait);
+
+  // Posición por defecto más "cara-friendly".
+  // Retrato: subimos un poco el enfoque para evitar cortar frente/ojos.
+  const op = portrait ? '50% 22%' : '50% 35%';
+  frame.style.setProperty('--op', op);
 }
 
 function probeImage(src){
