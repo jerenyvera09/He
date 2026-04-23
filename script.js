@@ -69,6 +69,7 @@ const btnCelebrate = $('#btnCelebrate');
 const btnReplay = $('#btnReplay');
 const btnBack = $('#btnBack');
 const btnMusic = $('#btnMusic');
+const bgMusic = $('#bgMusic');
 const hint = $('#hint');
 const footerLine = $('#footerLine');
 const secretNote = $('#secretNote');
@@ -82,6 +83,19 @@ const magicLayer = $('#magic');
 
 const musicLabel = btnMusic ? btnMusic.querySelector('[data-music-label]') : null;
 const musicIcon = btnMusic ? btnMusic.querySelector('.icon') : null;
+
+const MUSIC_SRC = 'assets/music/neztor.mp3';
+const MUSIC_VOLUME = 0.3;
+const MUSIC_FADE_IN_MS = 900;
+const MUSIC_FADE_OUT_MS = 320;
+const SECRET_NOTE_VISIBLE_MS = 5800;
+const SECRET_NOTE_HIDE_MS = 760;
+const CELEBRATE_OVERLAY_MS = 5200;
+const CELEBRATE_CLEAR_MS = 5400;
+const SECRET_NOTE_MESSAGE = `Si llegaste hasta aquí… es porque esto era para ti 💌
+No es algo grande… pero está hecho con todo mi cariño 💖
+Ojalá esta pequeña sorpresa te saque una sonrisa…
+porque verte feliz… vale todo ✨🌸`;
 
 // -----------------------------
 // Performance: ajustes para móvil
@@ -107,28 +121,16 @@ let typingLines = [];
 let typingLineIndex = 0;
 let typingLineTimer = null;
 let sceneTimers = [];
-let musicContext = null;
-let musicMasterGain = null;
-let musicFilter = null;
-let musicTimer = null;
-let musicStep = 0;
-let musicNextTime = 0;
 let musicPlaying = false;
-
-const musicPattern = [
-  [293.66, 369.99, 440.00],
-  [246.94, 293.66, 369.99],
-  [196.00, 246.94, 293.66],
-  [220.00, 277.18, 329.63],
-  [246.94, 329.63, 392.00],
-  [293.66, 392.00, 466.16],
-  [261.63, 329.63, 392.00],
-  [220.00, 293.66, 349.23],
-];
+let musicFadeRAF = null;
+let secretNoteTimer = null;
+let secretNoteHideTimer = null;
 
 function clearSceneTimers(){
   for (const timer of sceneTimers) window.clearTimeout(timer);
   sceneTimers = [];
+  clearSecretNoteTimer();
+  clearSecretNoteHideTimer();
 }
 
 function queueSceneTimer(callback, delay){
@@ -152,97 +154,104 @@ function clearOverlayState(){
   celebrateOverlay.classList.remove('show');
 }
 
-function ensureMusicEngine(){
-  if (musicContext) return musicContext;
-  const AudioCtor = window.AudioContext || window.webkitAudioContext;
-  if (!AudioCtor) return null;
-
-  musicContext = new AudioCtor();
-  musicFilter = musicContext.createBiquadFilter();
-  musicFilter.type = 'lowpass';
-  musicFilter.frequency.value = 1400;
-  musicFilter.Q.value = 0.7;
-
-  const delay = musicContext.createDelay(0.35);
-  delay.delayTime.value = 0.18;
-  const feedback = musicContext.createGain();
-  feedback.gain.value = 0.14;
-  const delayOutput = musicContext.createGain();
-  delayOutput.gain.value = 0.28;
-
-  musicMasterGain = musicContext.createGain();
-  musicMasterGain.gain.value = 0.0001;
-
-  musicFilter.connect(delay);
-  delay.connect(feedback);
-  feedback.connect(delay);
-  delay.connect(delayOutput);
-  musicFilter.connect(delayOutput);
-  delayOutput.connect(musicMasterGain);
-  musicMasterGain.connect(musicContext.destination);
-
-  return musicContext;
+function ensureMusicElement(){
+  if (!bgMusic) return null;
+  bgMusic.loop = true;
+  bgMusic.preload = 'metadata';
+  if (!bgMusic.getAttribute('src') && !bgMusic.currentSrc){
+    bgMusic.src = MUSIC_SRC;
+  }
+  return bgMusic;
 }
 
-function scheduleMusicStep(){
-  if (!musicContext || !musicMasterGain || !musicFilter) return;
+function cancelMusicFade(){
+  if (!musicFadeRAF) return;
+  window.cancelAnimationFrame(musicFadeRAF);
+  musicFadeRAF = null;
+}
 
-  const now = musicContext.currentTime;
-  const startTime = Math.max(now + 0.04, musicNextTime);
-  const chord = musicPattern[musicStep % musicPattern.length];
+function fadeMusicVolume(audio, target, duration, onComplete){
+  cancelMusicFade();
+  const start = performance.now();
+  const from = Number.isFinite(audio.volume) ? audio.volume : 0;
+  const delta = target - from;
 
-  chord.forEach((frequency, index) => {
-    const oscillator = musicContext.createOscillator();
-    const gain = musicContext.createGain();
-    oscillator.type = index === 1 ? 'triangle' : 'sine';
-    oscillator.frequency.setValueAtTime(frequency, startTime);
-    oscillator.detune.setValueAtTime(index === 0 ? -5 : index === 2 ? 6 : 0, startTime);
+  const tick = (now) => {
+    const progress = duration <= 0 ? 1 : Math.min(1, (now - start) / duration);
+    const eased = progress < 0.5
+      ? 2 * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
-    const peak = index === 1 ? 0.018 : 0.014;
-    gain.gain.setValueAtTime(0.0001, startTime);
-    gain.gain.exponentialRampToValueAtTime(peak, startTime + 0.06);
-    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.9);
+    audio.volume = Math.max(0, Math.min(1, from + delta * eased));
 
-    oscillator.connect(gain).connect(musicFilter);
-    oscillator.start(startTime);
-    oscillator.stop(startTime + 1.05);
-  });
+    if (progress < 1){
+      musicFadeRAF = window.requestAnimationFrame(tick);
+      return;
+    }
 
-  musicStep += 1;
-  musicNextTime = startTime + 0.82;
+    musicFadeRAF = null;
+    if (onComplete) onComplete();
+  };
+
+  musicFadeRAF = window.requestAnimationFrame(tick);
+}
+
+function markMusicUnavailable(error){
+  if (btnMusic) btnMusic.classList.add('is-unavailable');
+  updateMusicButton(false);
+  if (bgMusic){
+    cancelMusicFade();
+    bgMusic.pause();
+    bgMusic.volume = MUSIC_VOLUME;
+  }
+  if (error) console.warn(`No se pudo reproducir ${MUSIC_SRC}.`, error);
 }
 
 async function startMusic(){
-  const context = ensureMusicEngine();
-  if (!context) return;
-  if (context.state === 'suspended') await context.resume();
+  const audio = ensureMusicElement();
+  if (!audio) return;
 
-  if (!musicTimer){
-    musicStep = 0;
-    musicNextTime = context.currentTime + 0.18;
-    scheduleMusicStep();
-    musicTimer = window.setInterval(() => {
-      if (!musicContext || musicContext.state !== 'running') return;
-      const lookAhead = musicContext.currentTime + 0.6;
-      while (musicNextTime < lookAhead){
-        scheduleMusicStep();
-      }
-    }, 120);
+  cancelMusicFade();
+  if (btnMusic) btnMusic.classList.remove('is-unavailable');
+
+  try{
+    if (audio.readyState === 0) audio.load();
+    audio.volume = 0.001;
+
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.then === 'function'){
+      await playPromise;
+    }
+
+    updateMusicButton(true);
+    fadeMusicVolume(audio, MUSIC_VOLUME, MUSIC_FADE_IN_MS);
+  } catch (error){
+    markMusicUnavailable(error);
   }
-
-  if (musicMasterGain) musicMasterGain.gain.setTargetAtTime(0.3, context.currentTime, 0.14);
-  updateMusicButton(true);
 }
 
-async function pauseMusic(){
-  if (!musicContext) return;
-  if (musicMasterGain) musicMasterGain.gain.setTargetAtTime(0.0001, musicContext.currentTime, 0.08);
-  if (musicTimer){
-    window.clearInterval(musicTimer);
-    musicTimer = null;
+async function pauseMusic(options = {}){
+  const { immediate = false } = options;
+  const audio = ensureMusicElement();
+  if (!audio){
+    updateMusicButton(false);
+    return;
   }
-  if (musicContext.state === 'running') await musicContext.suspend();
+
+  cancelMusicFade();
+
+  if (immediate || audio.paused){
+    audio.pause();
+    audio.volume = MUSIC_VOLUME;
+    updateMusicButton(false);
+    return;
+  }
+
   updateMusicButton(false);
+  fadeMusicVolume(audio, 0.001, MUSIC_FADE_OUT_MS, () => {
+    audio.pause();
+    audio.volume = MUSIC_VOLUME;
+  });
 }
 
 async function toggleMusic(){
@@ -250,11 +259,85 @@ async function toggleMusic(){
   else await startMusic();
 }
 
+function clearSecretNoteTimer(){
+  if (!secretNoteTimer) return;
+  window.clearTimeout(secretNoteTimer);
+  secretNoteTimer = null;
+}
+
+function clearSecretNoteHideTimer(){
+  if (!secretNoteHideTimer) return;
+  window.clearTimeout(secretNoteHideTimer);
+  secretNoteHideTimer = null;
+}
+
+function hideSecretNote(options = {}){
+  const { immediate = false } = options;
+  if (!secretNote) return;
+
+  clearSecretNoteTimer();
+  clearSecretNoteHideTimer();
+  secretNote.classList.remove('reveal');
+
+  const finish = () => {
+    if (secretNote.classList.contains('reveal')) return;
+    secretNote.hidden = true;
+    if (tapHint) tapHint.classList.remove('is-revealed');
+  };
+
+  if (immediate){
+    finish();
+    return;
+  }
+
+  secretNoteHideTimer = window.setTimeout(() => {
+    secretNoteHideTimer = null;
+    finish();
+  }, SECRET_NOTE_HIDE_MS);
+}
+
 function revealSecretNote(){
-  if (!secretNote || !secretNote.hidden) return;
+  if (!secretNote) return;
+
+  clearSecretNoteTimer();
+  clearSecretNoteHideTimer();
   secretNote.hidden = false;
-  secretNote.classList.add('reveal');
+  secretNote.classList.remove('reveal');
   if (tapHint) tapHint.classList.add('is-revealed');
+
+  // Reinicia la transición si la mini tarjeta ya estaba visible.
+  // eslint-disable-next-line no-unused-expressions
+  secretNote.offsetWidth;
+
+  window.requestAnimationFrame(() => {
+    secretNote.classList.add('reveal');
+  });
+
+  if (!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)){
+    secretNote.animate(
+      [
+        { opacity: 0, transform: 'translateY(12px) scale(.94)', filter: 'blur(12px)' },
+        { opacity: 1, transform: 'translateY(0) scale(1.02)', filter: 'blur(0px)', offset: 0.42 },
+        { opacity: 1, transform: 'translateY(0) scale(1)', filter: 'blur(0px)' },
+      ],
+      { duration: 880, easing: 'cubic-bezier(.2,.85,.2,1)' }
+    );
+
+    if (tapHint){
+      tapHint.animate(
+        [
+          { transform: 'translateY(0) scale(1)', filter: 'brightness(1)' },
+          { transform: 'translateY(-1px) scale(1.04)', filter: 'brightness(1.06)' },
+          { transform: 'translateY(0) scale(1)', filter: 'brightness(1)' },
+        ],
+        { duration: 620, easing: 'cubic-bezier(.2,.85,.2,1)' }
+      );
+    }
+  }
+
+  secretNoteTimer = window.setTimeout(() => {
+    hideSecretNote();
+  }, SECRET_NOTE_VISIBLE_MS);
 }
 
 function mulberry32(seed){
@@ -279,8 +362,8 @@ function buildPetals(){
   const w = window.innerWidth;
   const h = window.innerHeight;
   const base = Math.floor((w * h) / 32000);
-  const cap = isMobileLike() ? 22 : 38;
-  const count = Math.max(14, Math.min(cap, Math.floor(base * (isMobileLike() ? 0.82 : 1))));
+  const cap = isMobileLike() ? 16 : 27;
+  const count = Math.max(10, Math.min(cap, Math.floor(base * (isMobileLike() ? 0.6 : 0.72))));
 
   layer.innerHTML = '';
 
@@ -305,14 +388,14 @@ function buildPetals(){
       x = 50 + (rnd() * 2 - 1) * 22;
     }
     x = Math.max(4, Math.min(96, x));
-    let size = (isMobileLike() ? 8.5 : 10.5) + rnd() * (isMobileLike() ? 8 : 11);
-    let dur = (isMobileLike() ? 12 : 14) + rnd() * (isMobileLike() ? 10 : 12);
+    let size = (isMobileLike() ? 8.2 : 10.2) + rnd() * (isMobileLike() ? 7 : 10);
+    let dur = (isMobileLike() ? 15.2 : 17.8) + rnd() * (isMobileLike() ? 11.5 : 14.5);
     const delay = -rnd() * dur;
     const sway = (rnd() * 2 - 1) * (isMobileLike() ? 14 : 22);
     const rot = (rnd() * 2 - 1) * 35;
     const spin = (rnd() < 0.5 ? -1 : 1) * (110 + rnd() * 160);
     const sc = 0.78 + rnd() * 0.55;
-    let o = 0.12 + rnd() * 0.34;
+    let o = 0.08 + rnd() * 0.22;
 
     const depthBlur = rnd();
     const blur = depthBlur < 0.20 ? (0.95 + rnd() * 1.5)
@@ -589,7 +672,7 @@ function resizeCanvas(){
   confettiCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-function launchConfetti(intensity = 140){
+function launchConfetti(intensity = 98){
   if (isMobileLike()) intensity = Math.max(60, Math.floor(intensity * 0.62));
   const colors = ['#fff4f7', '#ffdfe8', '#f8d7df', '#f6c1cf', '#f4a9be', '#ee8fad', '#ead2b0', '#d9a46d'];
   const w = window.innerWidth;
@@ -601,14 +684,14 @@ function launchConfetti(intensity = 140){
     pieces.push({
       x: w * (0.12 + Math.random() * 0.76),
       y: -30 - Math.random() * 160,
-      vx: (Math.random() - 0.5) * 1.7,
-      vy: 2.2 + Math.random() * 3.0,
+      vx: (Math.random() - 0.5) * 1.2,
+      vy: 1.55 + Math.random() * 2.15,
       rot: Math.random() * Math.PI,
-      vr: (Math.random() - 0.5) * 0.10,
+      vr: (Math.random() - 0.5) * 0.07,
       size: ribbon ? (4 + Math.random() * 7) : (8 + Math.random() * 10),
       color: colors[Math.floor(Math.random() * colors.length)],
       life: 0,
-      ttl: 430 + Math.random() * 160,
+      ttl: 540 + Math.random() * 220,
       shape: ribbon ? 'ribbon' : 'heart',
     });
   }
@@ -633,7 +716,7 @@ function tickConfetti(){
     p.life += 1;
 
     const fade = Math.max(0, 1 - (p.life / p.ttl));
-    const alpha = Math.min(1, fade * 1.05);
+    const alpha = Math.min(1, fade * 0.82);
 
     confettiCtx.save();
     confettiCtx.translate(p.x, p.y);
@@ -785,7 +868,7 @@ function flashThenConfetti(){
   );
 
   window.setTimeout(() => {
-    launchConfetti(136);
+    launchConfetti(96);
   }, 170);
 }
 
@@ -805,17 +888,21 @@ function celebrateWithImpact(){
   boostPetals();
   queueSceneTimer(() => boostPetals(), 140);
   queueSceneTimer(() => boostPetals(), 360);
+  queueSceneTimer(() => boostPetals(), 760);
   emitMagicBubbles();
   if (celebrateOverlay){
+    for (const animation of celebrateOverlay.getAnimations()){
+      animation.cancel();
+    }
     celebrateOverlay.classList.remove('show');
     celebrateOverlay.animate(
       [
         { opacity: 0 },
-        { opacity: 1, offset: 0.12 },
-        { opacity: 1, offset: 0.76 },
+        { opacity: 1, offset: 0.10 },
+        { opacity: 1, offset: 0.84 },
         { opacity: 0 },
       ],
-      { duration: 2500, easing: 'cubic-bezier(.2,.85,.2,1)', fill: 'both' }
+      { duration: CELEBRATE_OVERLAY_MS, easing: 'cubic-bezier(.2,.85,.2,1)', fill: 'both' }
     );
     window.requestAnimationFrame(() => celebrateOverlay.classList.add('show'));
   }
@@ -823,8 +910,9 @@ function celebrateWithImpact(){
   const centerY = window.innerHeight * (isMobileLike() ? 0.42 : 0.44);
   queueSceneTimer(() => burstSparklesAt(centerX, centerY, isMobileLike() ? 12 : 18, 24, 70), 140);
   queueSceneTimer(() => burstSparklesAt(centerX, centerY - 10, isMobileLike() ? 10 : 14, 16, 54), 420);
+  queueSceneTimer(() => burstSparklesAt(centerX, centerY - 14, isMobileLike() ? 8 : 12, 14, 40), 980);
   flashThenConfetti();
-  queueSceneTimer(() => clearOverlayState(), 2600);
+  queueSceneTimer(() => clearOverlayState(), CELEBRATE_CLEAR_MS);
 }
 
 function burstSparklesFromElement(el){
@@ -972,11 +1060,7 @@ function showScene(){
   scene.hidden = false;
   scene.classList.remove('ready');
   clearSceneTimers();
-  if (secretNote){
-    secretNote.hidden = true;
-    secretNote.classList.remove('reveal');
-  }
-  if (tapHint) tapHint.classList.remove('is-revealed');
+  hideSecretNote({ immediate: true });
   // Asegura que las imágenes tengan src (algunos navegadores difieren el render si estaba hidden)
   loadPhotos();
 
@@ -992,6 +1076,7 @@ function hideSceneToIntro(){
   if (!scene || !intro) return;
 
   clearSceneTimers();
+  hideSecretNote({ immediate: true });
   stopTyping();
   pauseMusic();
 
@@ -1037,7 +1122,7 @@ function boostPetals(){
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   const rnd = mulberry32((Date.now() ^ 0xBADA55) >>> 0);
-  const extra = isMobileLike() ? 5 : 8;
+  const extra = isMobileLike() ? 3 : 6;
 
   for (let i = 0; i < extra; i++){
     const p = document.createElement('i');
@@ -1046,14 +1131,14 @@ function boostPetals(){
     p.className = `petal ${variant}`;
 
     const x = 50 + (rnd() * 2 - 1) * 14;
-    const size = (isMobileLike() ? 9.5 : 11.5) + rnd() * (isMobileLike() ? 8 : 11);
-    const dur = (isMobileLike() ? 7.2 : 6.6) + rnd() * (isMobileLike() ? 2.6 : 3.0);
+    const size = (isMobileLike() ? 8.8 : 10.8) + rnd() * (isMobileLike() ? 7.2 : 9.2);
+    const dur = (isMobileLike() ? 8.6 : 8.0) + rnd() * (isMobileLike() ? 3.4 : 3.8);
     const delay = -rnd() * 0.3;
     const sway = (rnd() * 2 - 1) * (isMobileLike() ? 12 : 18);
     const rot = (rnd() * 2 - 1) * 30;
     const spin = (rnd() < 0.5 ? -1 : 1) * (120 + rnd() * 180);
     const sc = 0.9 + rnd() * 0.55;
-    const o = 0.36 + rnd() * 0.22;
+    const o = 0.22 + rnd() * 0.16;
     const blur = (rnd() < 0.35) ? (0.8 + rnd() * 1.2) : (0.2 + rnd() * 0.6);
 
     p.style.setProperty('--x', Math.max(6, Math.min(94, x)).toFixed(2) + '%');
@@ -1140,11 +1225,21 @@ resizeCanvas();
 resizeVortex();
 loadPhotos();
 startShootingStars();
+if (bgMusic){
+  bgMusic.src = MUSIC_SRC;
+  bgMusic.volume = MUSIC_VOLUME;
+  bgMusic.loop = true;
+  bgMusic.preload = 'metadata';
+  bgMusic.addEventListener('error', () => {
+    if (!musicPlaying) return;
+    markMusicUnavailable(bgMusic.error || new Error(`No se pudo cargar ${MUSIC_SRC}.`));
+  });
+}
 
 if (headline) headline.textContent = NAME;
 if (phraseEl) phraseEl.textContent = customPhrase;
 if (subline) subline.textContent = 'Un momento pequeño para celebrar todo lo hermoso que eres.';
-if (secretNote) secretNote.textContent = 'Este detallito fue hecho pensando en ti 💖';
+if (secretNote) secretNote.textContent = SECRET_NOTE_MESSAGE;
 if (celebrateTitle) celebrateTitle.textContent = `Feliz cumpleaños, ${NAME} 💖`;
 if (celebrateText) celebrateText.textContent = 'Eres muy especial';
 
@@ -1181,16 +1276,6 @@ if (tapHint){
   tapHint.addEventListener('click', (e) => {
     e.stopPropagation();
     revealSecretNote();
-    if (secretNote && !secretNote.hidden){
-      secretNote.animate(
-        [
-          { transform: 'translateY(0) scale(.98)', opacity: .4 },
-          { transform: 'translateY(-2px) scale(1.02)', opacity: 1 },
-          { transform: 'translateY(0) scale(1)', opacity: 1 },
-        ],
-        { duration: 620, easing: 'cubic-bezier(.2,.85,.2,1)' }
-      );
-    }
     burstSparklesFromElement(tapHint);
   });
 }

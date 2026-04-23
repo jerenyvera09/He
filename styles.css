@@ -116,10 +116,10 @@ body.intro-mode .glow{
   opacity:0;
   overflow:hidden;
   background:
-    linear-gradient(180deg, rgba(33,14,26,.18), rgba(33,14,26,.44)),
-    radial-gradient(980px 720px at 50% 42%, rgba(255,247,250,.12), transparent 40%),
-    radial-gradient(720px 540px at 50% 44%, rgba(238,143,173,.22), rgba(78,26,50,.54) 72%, rgba(20,8,16,.70) 100%);
-  backdrop-filter: blur(4px);
+    linear-gradient(180deg, rgba(255, 192, 203, 0.18), rgba(255,249,251,.22)),
+    radial-gradient(980px 720px at 50% 42%, rgba(255,255,255,.22), transparent 42%),
+    radial-gradient(760px 560px at 50% 44%, rgba(255, 192, 203, 0.25), rgba(255,236,242,.16) 62%, rgba(255,247,250,.10) 100%);
+  backdrop-filter: blur(2.2px) saturate(1.04);
 }
 
 .celebrateOverlay::before{
@@ -128,18 +128,18 @@ body.intro-mode .glow{
   inset:18% 24%;
   border-radius:50%;
   background:
-    radial-gradient(circle at 50% 50%, rgba(255,255,255,.22), rgba(255,223,232,.18) 24%, rgba(244,169,190,.12) 46%, rgba(244,169,190,0) 72%);
-  filter: blur(24px);
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.32), rgba(255,232,239,.24) 26%, rgba(244,169,190,.16) 50%, rgba(244,169,190,0) 74%);
+  filter: blur(22px);
   opacity:0;
   transform: scale(.82);
 }
 
 .celebrateOverlay.show{
-  animation: celebrateOverlayIn 2500ms cubic-bezier(.2,.85,.2,1) both;
+  animation: celebrateOverlayIn 4800ms cubic-bezier(.2,.85,.2,1) both;
 }
 
 .celebrateOverlay.show::before{
-  animation: celebrateHalo 2500ms cubic-bezier(.2,.85,.2,1) both;
+  animation: celebrateHalo 4800ms cubic-bezier(.2,.85,.2,1) both;
 }
 
 .celebrateCard{
@@ -155,11 +155,12 @@ body.intro-mode .glow{
     linear-gradient(180deg, rgba(255,255,255,.46), rgba(255,247,250,.20));
   border:1px solid rgba(255,255,255,.22);
   box-shadow:
-    0 34px 96px rgba(46,14,32,.32),
-    0 0 64px rgba(238,143,173,.22),
+    0 26px 72px rgba(46,14,32,.18),
+    0 0 82px rgba(238,143,173,.24),
+    0 0 38px rgba(246,193,207,.16),
     0 0 0 1px rgba(255,255,255,.08),
     inset 0 1px 0 rgba(255,255,255,.34);
-  transform: translateY(18px) scale(.92);
+  transform: translateY(20px) scale(.90);
   opacity:0;
   overflow:hidden;
   backdrop-filter: blur(18px);
@@ -186,7 +187,7 @@ body.intro-mode .glow{
 }
 
 .celebrateOverlay.show .celebrateCard{
-  animation: celebrateCardIn 1460ms cubic-bezier(.2,.85,.2,1) 60ms both;
+  animation: celebrateCardIn 4700ms cubic-bezier(.16,1,.3,1) 60ms both;
 }
 
 .celebrateEyebrow{
@@ -235,29 +236,30 @@ body.intro-mode .glow{
   position:relative;
   z-index:1;
   margin-top:12px;
-  color: rgba(112,80,96,.92);
-  font-size: clamp(16px, 2.5vw, 20px);
+  color: rgba(102,70,86,.96);
+  font-size: clamp(18px, 2.85vw, 23px);
   letter-spacing:.03em;
+  text-shadow: 0 8px 18px rgba(255,255,255,.16);
 }
 
 @keyframes celebrateOverlayIn{
   0%{opacity:0}
-  14%{opacity:1}
-  78%{opacity:1}
+  10%{opacity:1}
+  84%{opacity:1}
   100%{opacity:0}
 }
 
 @keyframes celebrateCardIn{
-  0%{opacity:0; transform: translateY(24px) scale(.86); filter: blur(16px)}
-  18%{opacity:1; transform: translateY(0) scale(1); filter: blur(0)}
-  74%{opacity:1; transform: translateY(-6px) scale(1.015)}
+  0%{opacity:0; transform: translateY(24px) scale(.90); filter: blur(14px)}
+  14%{opacity:1; transform: translateY(0) scale(1); filter: blur(0)}
+  84%{opacity:1; transform: translateY(-6px) scale(1.015)}
   100%{opacity:0; transform: translateY(-22px) scale(.98); filter: blur(8px)}
 }
 
 @keyframes celebrateHalo{
   0%{opacity:0; transform: scale(.82)}
-  16%{opacity:.92; transform: scale(1)}
-  74%{opacity:.90; transform: scale(1.14)}
+  12%{opacity:.92; transform: scale(1)}
+  82%{opacity:.90; transform: scale(1.14)}
   100%{opacity:0; transform: scale(1.22)}
 }
 
@@ -315,10 +317,10 @@ body.intro-mode .glow{
   50%{transform:translate3d(2%, -1.5%, 0) scale(1.03)}
 }
 
-.petals{position:absolute; inset:0; opacity:.9; overflow:hidden}
+.petals{position:absolute; inset:0; opacity:.72; overflow:hidden}
 
 /* Bloom breve al iniciar (momento especial, sutil) */
-body.opening .petals{opacity:1; filter: saturate(1.05) brightness(1.03)}
+body.opening .petals{opacity:.84; filter: saturate(1.04) brightness(1.02)}
 body.opening .introInner::after{opacity:1}
 body.opening .intro{
   filter: blur(6px) saturate(1.03);
@@ -343,12 +345,12 @@ body.opening .glow{
   top:-14vh;
   width: var(--w, 14px);
   height: calc(var(--w, 14px) * 1.34);
-  opacity: var(--o, .42);
+  opacity: var(--o, .30);
   border-radius: 62% 38% 62% 38% / 70% 30% 70% 30%;
   transform: translate3d(0, -12vh, 0) rotate(var(--r, 0deg)) scale(var(--sc, 1));
   filter: blur(var(--blur, 0px));
   will-change: transform, opacity;
-  animation: petalFall var(--dur, 14s) linear var(--delay, 0s) infinite;
+  animation: petalFall var(--dur, 18s) linear var(--delay, 0s) infinite;
 }
 
 .petal::before{
@@ -873,7 +875,7 @@ body.opening .introInner{transform: translateY(-1px) scale(1.01); filter: bright
   text-transform:uppercase;
   box-shadow: 0 12px 30px rgba(46,14,32,.10), 0 0 0 1px rgba(255,255,255,.08);
   backdrop-filter: blur(10px);
-  transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease, filter .18s ease;
+  transition: transform .24s cubic-bezier(.2,.85,.2,1), box-shadow .24s cubic-bezier(.2,.85,.2,1), background .22s ease, border-color .22s ease, filter .22s ease;
 }
 
 .iconBtn .icon{
@@ -883,21 +885,31 @@ body.opening .introInner{transform: translateY(-1px) scale(1.01); filter: bright
 }
 
 .iconBtn:hover{
-  transform: translateY(-1px);
+  transform: translateY(-1px) scale(1.05);
   border-color: rgba(216,168,110,.34);
   background: rgba(255,255,255,.30);
-  box-shadow: 0 16px 36px rgba(46,14,32,.12), 0 0 24px rgba(238,143,173,.12);
+  box-shadow: 0 16px 36px rgba(46,14,32,.12), 0 0 26px rgba(238,143,173,.14);
 }
 
 .iconBtn:active{transform: translateY(0) scale(.99)}
 
 .iconBtn.music.is-playing{
   border-color: rgba(238,143,173,.34);
-  background: linear-gradient(180deg, rgba(244,169,190,.34), rgba(255,255,255,.18));
+  background:
+    radial-gradient(120px 60px at 32% 24%, rgba(255,255,255,.48), transparent 64%),
+    linear-gradient(180deg, rgba(244,169,190,.42), rgba(255,255,255,.18));
+  box-shadow:
+    0 16px 34px rgba(46,14,32,.14),
+    0 0 30px rgba(238,143,173,.16),
+    0 0 0 1px rgba(255,255,255,.10);
 }
 
 .iconBtn.music.is-playing .icon{
   color: rgba(157,84,121,.98);
+}
+
+.iconBtn.music.is-unavailable{
+  opacity:.76;
 }
 
 .scene.ready .panel{
@@ -1177,8 +1189,8 @@ body.opening .introInner{transform: translateY(-1px) scale(1.01); filter: bright
   transform-origin: 50% 78%;
   border-color: rgba(238,143,173,.22);
   box-shadow:
-    0 18px 40px rgba(46,14,32,.14),
-    0 12px 24px rgba(238,143,173,.08),
+    0 20px 42px rgba(46,14,32,.13),
+    0 10px 22px rgba(238,143,173,.06),
     0 0 0 1px rgba(255,255,255,.12);
   z-index:2;
 }
@@ -1219,7 +1231,7 @@ body.opening .introInner{transform: translateY(-1px) scale(1.01); filter: bright
     radial-gradient(620px 260px at 18% -6%, rgba(255,255,255,.74), transparent 56%),
     radial-gradient(520px 220px at 88% 12%, rgba(244,169,190,.14), transparent 58%),
     linear-gradient(180deg, rgba(255,252,253,.86), rgba(255,245,249,.64));
-  padding:24px 22px 22px;
+  padding:26px 24px 24px;
   position:relative;
   overflow:hidden;
   isolation:isolate;
@@ -1293,10 +1305,10 @@ body.opening .introInner{transform: translateY(-1px) scale(1.01); filter: bright
 
 .linesText{
   color: rgba(120,88,102,.92);
-  line-height:1.86;
-  min-height:74px;
+  line-height:1.92;
+  min-height:78px;
   position:relative;
-  padding-bottom:10px;
+  padding-bottom:12px;
   font-family: "Cormorant Garamond", "Playfair Display", ui-serif, Georgia, serif;
   font-size: clamp(17px, 2.35vw, 19px);
   letter-spacing:.012em;
@@ -1359,11 +1371,11 @@ body.opening .introInner{transform: translateY(-1px) scale(1.01); filter: bright
   cursor:pointer;
   font-weight:650;
   letter-spacing:.15px;
-  transition: transform .12s ease, background .2s ease, border-color .2s ease, filter .2s ease;
+  transition: transform .24s cubic-bezier(.2,.85,.2,1), background .22s ease, border-color .22s ease, filter .22s ease, box-shadow .24s cubic-bezier(.2,.85,.2,1);
   box-shadow: 0 14px 34px rgba(46,14,32,.12);
 }
 
-.btn:hover{transform: translateY(-1px); border-color: rgba(216,168,110,.32); filter: brightness(1.04)}
+.btn:hover{transform: translateY(-1px) scale(1.05); border-color: rgba(216,168,110,.32); filter: brightness(1.04); box-shadow: 0 18px 38px rgba(46,14,32,.14), 0 0 24px rgba(238,143,173,.14)}
 .btn:active{transform: translateY(0)}
 .btn.ghost{background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.08)); color: var(--muted); opacity:.82}
 
@@ -1401,6 +1413,7 @@ body.opening .introInner{transform: translateY(-1px) scale(1.01); filter: bright
 }
 
 #btnCelebrate:hover{
+  transform: translateY(-1px) scale(1.05);
   box-shadow:
     0 20px 48px rgba(46,14,32,.18),
     0 0 0 1px rgba(216,168,110,.18),
@@ -1541,22 +1554,28 @@ body.opening .introInner{transform: translateY(-1px) scale(1.01); filter: bright
 .scene.ready .footer{animation: fadeScale 720ms cubic-bezier(.2,.85,.2,1) 1260ms forwards}
 
 .messageAside{
+  position:relative;
   display:flex;
   flex-direction:column;
   align-items:flex-end;
-  gap:10px;
-  margin-top:-8px;
+  gap:0;
+  margin-top:-6px;
   padding:0 10px;
 }
 
 .tapHint{
   appearance:none;
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
   display:inline-flex;
   align-items:center;
   align-self:flex-end;
   margin-top:0;
   border:1px solid rgba(238,143,173,.22);
-  background: linear-gradient(180deg, rgba(255,255,255,.48), rgba(255,245,249,.28));
+  background:
+    radial-gradient(120px 50px at 30% 22%, rgba(255,255,255,.56), transparent 64%),
+    linear-gradient(180deg, rgba(255,255,255,.48), rgba(255,245,249,.28));
   color: rgba(157,84,121,.78);
   border-radius:999px 999px 14px 999px;
   padding:7px 14px;
@@ -1569,42 +1588,82 @@ body.opening .introInner{transform: translateY(-1px) scale(1.01); filter: bright
   opacity:0;
   transform: translateY(8px);
   filter: blur(8px);
-  transition: transform .18s ease, background .22s ease, border-color .22s ease, box-shadow .22s ease, color .22s ease;
+  transition: transform .24s cubic-bezier(.2,.85,.2,1), background .22s ease, border-color .22s ease, box-shadow .24s cubic-bezier(.2,.85,.2,1), color .22s ease;
+}
+
+.tapHint::before{
+  content:"";
+  position:absolute;
+  inset:1px;
+  border-radius:inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,0));
+  opacity:.86;
+  pointer-events:none;
+}
+
+.tapHint::after{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  border-radius:inherit;
+  background: radial-gradient(120px 56px at 50% 50%, rgba(238,143,173,.16), rgba(244,169,190,.10), transparent 72%);
+  opacity:.7;
+  filter: blur(10px);
+  z-index:-1;
+  pointer-events:none;
 }
 
 .scene.ready .tapHint{animation: fadeScale 720ms cubic-bezier(.2,.85,.2,1) 1320ms forwards}
 
 .tapHint:hover{
-  background: linear-gradient(180deg, rgba(255,255,255,.58), rgba(255,245,249,.34));
+  transform: translateY(-1px) scale(1.05);
+  background:
+    radial-gradient(120px 50px at 30% 22%, rgba(255,255,255,.64), transparent 64%),
+    linear-gradient(180deg, rgba(255,255,255,.58), rgba(255,245,249,.34));
   border-color: rgba(238,143,173,.32);
-  box-shadow: 0 16px 30px rgba(46,14,32,.08);
+  box-shadow: 0 16px 30px rgba(46,14,32,.08), 0 0 24px rgba(238,143,173,.12);
 }
 .tapHint:active{transform: translateY(0) scale(.99)}
 .tapHint.is-revealed{
   color: rgba(157,84,121,.92);
   border-color: rgba(238,143,173,.34);
+  box-shadow:
+    0 14px 28px rgba(46,14,32,.08),
+    0 0 24px rgba(238,143,173,.12);
 }
 
 .secretNote{
   position:relative;
   align-self:flex-end;
-  margin:0;
-  padding:12px 14px;
-  border-radius:20px 20px 8px 20px;
+  margin:12px 0 0;
+  padding:20px 22px 18px;
+  border-radius:30px 30px 14px 30px;
   border:1px solid rgba(234,210,176,.22);
-  background: linear-gradient(180deg, rgba(255,255,255,.60), rgba(255,246,249,.38));
-  color: rgba(157,84,121,.9);
-  font-size:13px;
-  letter-spacing:.02em;
-  line-height:1.55;
+  background:
+    radial-gradient(220px 120px at 26% 16%, rgba(255,255,255,.78), transparent 68%),
+    radial-gradient(220px 130px at 74% 100%, rgba(244,169,190,.18), transparent 78%),
+    linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,248,250,.52));
+  color: rgba(140,88,110,.94);
+  font-size: clamp(14px, 2vw, 16px);
+  letter-spacing:.015em;
+  line-height:1.72;
   text-align:left;
+  white-space: pre-line;
   opacity:0;
-  transform: translateY(8px);
+  transform: translateY(10px) scale(.96);
+  transform-origin: top right;
   filter: blur(8px);
-  width:min(320px, 100%);
+  width:min(430px, 100%);
   max-width:100%;
-  box-shadow: 0 14px 30px rgba(46,14,32,.08);
-  transition: opacity 420ms cubic-bezier(.2,.85,.2,1), transform 420ms cubic-bezier(.2,.85,.2,1), filter 420ms cubic-bezier(.2,.85,.2,1);
+  box-shadow:
+    0 22px 56px rgba(46,14,32,.12),
+    0 0 28px rgba(238,143,173,.12),
+    0 0 0 1px rgba(255,255,255,.08),
+    inset 0 1px 0 rgba(255,255,255,.32);
+  overflow:hidden;
+  isolation:isolate;
+  backdrop-filter: blur(16px);
+  transition: opacity 520ms cubic-bezier(.2,.85,.2,1), transform 520ms cubic-bezier(.2,.85,.2,1), filter 520ms cubic-bezier(.2,.85,.2,1);
 }
 
 .secretNote::before{
@@ -1616,12 +1675,26 @@ body.opening .introInner{transform: translateY(-1px) scale(1.01); filter: bright
   height:12px;
   border-top:1px solid rgba(234,210,176,.22);
   border-left:1px solid rgba(234,210,176,.22);
-  background: linear-gradient(180deg, rgba(255,255,255,.60), rgba(255,246,249,.38));
+  background: linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,246,249,.40));
   transform: rotate(45deg);
   border-top-left-radius:3px;
 }
 
-.secretNote.reveal{opacity:1; transform: translateY(0); filter: blur(0)}
+.secretNote::after{
+  content:"";
+  position:absolute;
+  inset:12px;
+  border-radius:22px 22px 8px 22px;
+  border:1px solid rgba(255,255,255,.18);
+  opacity:.76;
+  pointer-events:none;
+}
+
+.secretNote.reveal{
+  opacity:1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
 
 @keyframes secretNoteIn{
   0%{opacity:0; transform: translateY(8px); filter: blur(8px)}
@@ -1653,7 +1726,7 @@ body.opening .introInner{transform: translateY(-1px) scale(1.01); filter: bright
   .frame.secondary{top:214px; right:10px; width:min(280px, 68%); height:186px}
   .photoStage{min-height: 436px}
   .messageAside{padding:0 4px}
-  .secretNote{width:min(280px, 100%)}
+  .secretNote{width:min(320px, 100%); padding:18px 18px 16px}
   .tapHint{font-size:10px}
 }
 
