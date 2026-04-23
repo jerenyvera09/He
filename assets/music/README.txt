@@ -1,2 +1,2 @@
-Coloca aqui el archivo de musica principal con este nombre:
-neztor.mp3
+Coloca aqui la pista instrumental principal con este nombre:
+kiss-the-rain.mp3

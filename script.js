@@ -84,14 +84,14 @@ const magicLayer = $('#magic');
 const musicLabel = btnMusic ? btnMusic.querySelector('[data-music-label]') : null;
 const musicIcon = btnMusic ? btnMusic.querySelector('.icon') : null;
 
-const MUSIC_SRC = 'assets/music/neztor.mp3';
+const MUSIC_SRC = 'assets/music/kiss-the-rain.mp3';
 const MUSIC_VOLUME = 0.3;
 const MUSIC_FADE_IN_MS = 900;
 const MUSIC_FADE_OUT_MS = 320;
 const SECRET_NOTE_VISIBLE_MS = 5800;
 const SECRET_NOTE_HIDE_MS = 760;
-const CELEBRATE_OVERLAY_MS = 5200;
-const CELEBRATE_CLEAR_MS = 5400;
+const CELEBRATE_OVERLAY_MS = 4800;
+const CELEBRATE_CLEAR_MS = 5000;
 const SECRET_NOTE_MESSAGE = `Si llegaste hasta aquí… es porque esto era para ti 💌
 No es algo grande… pero está hecho con todo mi cariño 💖
 Ojalá esta pequeña sorpresa te saque una sonrisa…
@@ -150,8 +150,10 @@ function updateMusicButton(isPlaying){
 }
 
 function clearOverlayState(){
+  document.body.classList.remove('is-celebrating');
   if (!celebrateOverlay) return;
   celebrateOverlay.classList.remove('show');
+  celebrateOverlay.setAttribute('aria-hidden', 'true');
 }
 
 function ensureMusicElement(){
@@ -885,12 +887,15 @@ function celebrateWithImpact(){
     burstSparklesFromElement(btnCelebrate);
   }
 
+  hideSecretNote({ immediate: true });
+  document.body.classList.add('is-celebrating');
   boostPetals();
   queueSceneTimer(() => boostPetals(), 140);
   queueSceneTimer(() => boostPetals(), 360);
   queueSceneTimer(() => boostPetals(), 760);
   emitMagicBubbles();
   if (celebrateOverlay){
+    celebrateOverlay.setAttribute('aria-hidden', 'false');
     for (const animation of celebrateOverlay.getAnimations()){
       animation.cancel();
     }
@@ -1060,6 +1065,7 @@ function showScene(){
   scene.hidden = false;
   scene.classList.remove('ready');
   clearSceneTimers();
+  clearOverlayState();
   hideSecretNote({ immediate: true });
   // Asegura que las imágenes tengan src (algunos navegadores difieren el render si estaba hidden)
   loadPhotos();
@@ -1076,6 +1082,7 @@ function hideSceneToIntro(){
   if (!scene || !intro) return;
 
   clearSceneTimers();
+  clearOverlayState();
   hideSecretNote({ immediate: true });
   stopTyping();
   pauseMusic();
