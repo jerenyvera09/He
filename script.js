@@ -88,10 +88,10 @@ const MUSIC_SRC = 'assets/music/a-thousand-years-piano.mp3';
 const MUSIC_VOLUME = 0.3;
 const MUSIC_FADE_IN_MS = 900;
 const MUSIC_FADE_OUT_MS = 320;
-const SECRET_NOTE_VISIBLE_MS = 6200;
-const SECRET_NOTE_HIDE_MS = 820;
-const CELEBRATE_OVERLAY_MS = 4800;
-const CELEBRATE_CLEAR_MS = 5000;
+const SECRET_NOTE_VISIBLE_MS = 6600;
+const SECRET_NOTE_HIDE_MS = 900;
+const CELEBRATE_OVERLAY_MS = 5000;
+const CELEBRATE_CLEAR_MS = 5200;
 const SECRET_NOTE_MESSAGE = `Si llegaste hasta aquí…
 es porque esto era para ti 💌
 Gracias por tomarte el tiempo de mirar este pequeño detalle…
@@ -318,11 +318,11 @@ function revealSecretNote(){
   if (!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)){
     secretNote.animate(
       [
-        { opacity: 0, transform: 'translateY(12px) scale(.94)', filter: 'blur(12px)' },
-        { opacity: 1, transform: 'translateY(0) scale(1.02)', filter: 'blur(0px)', offset: 0.42 },
+        { opacity: 0, transform: 'translateY(16px) scale(.90)', filter: 'blur(14px)' },
+        { opacity: 1, transform: 'translateY(-2px) scale(1.015)', filter: 'blur(0px)', offset: 0.5 },
         { opacity: 1, transform: 'translateY(0) scale(1)', filter: 'blur(0px)' },
       ],
-      { duration: 880, easing: 'cubic-bezier(.2,.85,.2,1)' }
+      { duration: 980, easing: 'cubic-bezier(.16,1,.3,1)' }
     );
 
     if (tapHint){
