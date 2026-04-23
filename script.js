@@ -69,6 +69,7 @@ const btnReplay = $('#btnReplay');
 const hint = $('#hint');
 const flash = $('#flash');
 const shootingLayer = $('#shooting');
+const magicLayer = $('#magic');
 
 // -----------------------------
 // Performance: ajustes para móvil
@@ -101,40 +102,74 @@ function mulberry32(seed){
   };
 }
 
-function buildStars(){
-  const stars = $('#stars');
-  if (!stars) return;
+function buildPetals(){
+  const layer = $('#petals');
+  if (!layer) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    layer.innerHTML = '';
+    return;
+  }
+
   const rnd = mulberry32(20260422);
-  const base = Math.floor((window.innerWidth * window.innerHeight) / 14000);
-  const cap = isMobileLike() ? 80 : 140;
-  const count = Math.max(26, Math.min(cap, Math.floor(base * (isMobileLike() ? 0.62 : 1))));
-  stars.innerHTML = '';
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const base = Math.floor((w * h) / 32000);
+  const cap = isMobileLike() ? 22 : 38;
+  const count = Math.max(14, Math.min(cap, Math.floor(base * (isMobileLike() ? 0.82 : 1))));
+
+  layer.innerHTML = '';
+
+  const pickVariant = () => {
+    const r = rnd();
+    // 70% rosa suave, 20% champagne, 10% dorado rosado
+    if (r < 0.28) return 'p1';
+    if (r < 0.52) return 'p2';
+    if (r < 0.70) return 'p3';
+    if (r < 0.90) return 'p4';
+    return 'p5';
+  };
 
   for (let i = 0; i < count; i++){
-    const s = document.createElement('i');
-    s.className = 'star';
+    const p = document.createElement('i');
+    const variant = pickVariant();
+    p.className = `petal ${variant}`;
+
     const x = rnd() * 100;
-    const y = rnd() * 100;
-    const tw = 2.0 + rnd() * 3.8;
-    const td = -rnd() * 4.5;
-    const sd = 14 + rnd() * 22;
-    const dd = -rnd() * sd;
-    const size = 1 + rnd() * 2.2;
-    const dx = (rnd() * 2 - 1) * (8 + rnd() * 12);
-    const dy = (rnd() * 2 - 1) * (6 + rnd() * 10);
+    let size = (isMobileLike() ? 10 : 12) + rnd() * (isMobileLike() ? 10 : 14);
+    const dur = (isMobileLike() ? 12 : 14) + rnd() * (isMobileLike() ? 10 : 12);
+    const delay = -rnd() * dur;
+    const sway = (rnd() * 2 - 1) * (isMobileLike() ? 18 : 28);
+    const rot = (rnd() * 2 - 1) * 35;
+    const spin = (rnd() < 0.5 ? -1 : 1) * (110 + rnd() * 160);
+    const sc = 0.78 + rnd() * 0.55;
+    let o = 0.18 + rnd() * 0.46;
 
-    s.style.left = x + '%';
-    s.style.top = y + '%';
-    s.style.width = size + 'px';
-    s.style.height = size + 'px';
+    const depthBlur = rnd();
+    const blur = depthBlur < 0.22 ? (0.9 + rnd() * 1.4)
+      : depthBlur < 0.45 ? (0.35 + rnd() * 0.7)
+        : (0 + rnd() * 0.35);
 
-    s.style.setProperty('--tw', tw + 's');
-    s.style.setProperty('--td', td + 's');
-    s.style.setProperty('--sd', sd + 's');
-    s.style.setProperty('--dd', dd + 's');
-    s.style.setProperty('--dx', dx.toFixed(2) + 'px');
-    s.style.setProperty('--dy', dy.toFixed(2) + 'px');
-    stars.appendChild(s);
+    // Variación sutil por tipo (premium): champagne/gold un poco más "etéreo"
+    if (variant === 'p4'){
+      o *= 0.92;
+      size *= 0.98;
+    } else if (variant === 'p5'){
+      o *= 0.84;
+      size *= 0.95;
+    }
+
+    p.style.setProperty('--x', x.toFixed(2) + '%');
+    p.style.setProperty('--w', size.toFixed(2) + 'px');
+    p.style.setProperty('--dur', dur.toFixed(2) + 's');
+    p.style.setProperty('--delay', delay.toFixed(2) + 's');
+    p.style.setProperty('--sway', sway.toFixed(2) + 'px');
+    p.style.setProperty('--r', rot.toFixed(1) + 'deg');
+    p.style.setProperty('--spin', spin.toFixed(1) + 'deg');
+    p.style.setProperty('--sc', sc.toFixed(2));
+    p.style.setProperty('--o', o.toFixed(2));
+    p.style.setProperty('--blur', blur.toFixed(2) + 'px');
+
+    layer.appendChild(p);
   }
 }
 
@@ -352,7 +387,7 @@ function resizeCanvas(){
 
 function launchConfetti(intensity = 140){
   if (isMobileLike()) intensity = Math.max(60, Math.floor(intensity * 0.62));
-  const colors = ['#a855f7', '#22d3ee', '#1d4ed8', '#fb7185', '#ffffff'];
+  const colors = ['#fff4f7', '#ffdfe8', '#f8d7df', '#f6c1cf', '#f4a9be', '#ee8fad', '#ead2b0', '#d9a46d'];
   const w = window.innerWidth;
   const h = window.innerHeight;
 
@@ -459,7 +494,7 @@ function startVortex(durationMs = 1200){
   vortexParticles = [];
   const baseCount = Math.min(210, Math.max(130, Math.floor((w * h) / 9000)));
   const count = isMobileLike() ? Math.max(90, Math.floor(baseCount * 0.62)) : baseCount;
-  const palette = ['#a855f7', '#22d3ee', '#1d4ed8', '#ffffff'];
+  const palette = ['#fff4f7', '#ffdfe8', '#f8d7df', '#f6c1cf', '#f4a9be', '#ee8fad', '#ead2b0', '#d9a46d'];
 
   for (let i = 0; i < count; i++){
     const angle = Math.random() * Math.PI * 2;
@@ -580,6 +615,64 @@ function burstSparklesFromElement(el){
   }
 }
 
+// -----------------------------
+// Efecto final: burbujas mágicas (premium)
+// -----------------------------
+
+function emitMagicBubbles(){
+  if (!magicLayer) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  // Origen: abajo a la izquierda (elegante, no caricaturesco)
+  const originX = Math.max(24, Math.min(vw * 0.18, vw - 40));
+  const originY = vh - Math.max(28, Math.min(vh * 0.12, 120));
+
+  const count = isMobileLike() ? 8 : 12;
+  for (let i = 0; i < count; i++){
+    const b = document.createElement('i');
+    b.className = 'magicBubble bubble';
+
+    const size = (isMobileLike() ? 10 : 12) + Math.random() * (isMobileLike() ? 18 : 24);
+    const sx = originX + (Math.random() - 0.5) * 46;
+    const sy = originY + (Math.random() - 0.5) * 28;
+    const dx = (Math.random() - 0.15) * 140;
+    const dy = -(220 + Math.random() * (isMobileLike() ? 220 : 360));
+    const dur = 1100 + Math.random() * (isMobileLike() ? 650 : 850);
+    const sc = 0.72 + Math.random() * 0.6;
+    const a = 0.42 + Math.random() * 0.36;
+
+    b.style.setProperty('--sz', size.toFixed(1) + 'px');
+    b.style.setProperty('--sx', sx.toFixed(1) + 'px');
+    b.style.setProperty('--sy', sy.toFixed(1) + 'px');
+    b.style.setProperty('--dx', dx.toFixed(1) + 'px');
+    b.style.setProperty('--dy', dy.toFixed(1) + 'px');
+    b.style.setProperty('--dur', dur.toFixed(0) + 'ms');
+    b.style.setProperty('--sc', sc.toFixed(2));
+    b.style.setProperty('--a', a.toFixed(2));
+
+    magicLayer.appendChild(b);
+    b.addEventListener('animationend', () => b.remove(), { once: true });
+  }
+
+  // Burbuja principal centrada con texto
+  window.setTimeout(() => {
+    const main = document.createElement('div');
+    main.className = 'magicBubble main';
+
+    const text = document.createElement('div');
+    text.className = 'magicText';
+    text.textContent = 'Feliz cumpleaños 🎂';
+
+    main.appendChild(text);
+    magicLayer.appendChild(main);
+
+    main.addEventListener('animationend', () => main.remove(), { once: true });
+  }, 520);
+}
+
 if (btnReplay){
   btnReplay.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -588,7 +681,7 @@ if (btnReplay){
 }
 
 window.addEventListener('resize', () => {
-  buildStars();
+  buildPetals();
   resizeCanvas();
   resizeVortex();
 });
@@ -673,6 +766,8 @@ function openExperience(){
   if (hasOpened) return;
   hasOpened = true;
 
+  document.body.classList.remove('intro-mode');
+
   if (hint) hint.textContent = 'Respira…';
   hideIntro();
   startVortex(1250);
@@ -691,7 +786,9 @@ function openExperience(){
 // Init
 // -----------------------------
 
-buildStars();
+document.body.classList.add('intro-mode');
+
+buildPetals();
 resizeCanvas();
 resizeVortex();
 loadPhotos();
@@ -714,7 +811,7 @@ if (scene){
 if (btnCelebrate){
   btnCelebrate.addEventListener('click', (e) => {
     e.stopPropagation();
-    burstSparklesFromElement(btnCelebrate);
+    emitMagicBubbles();
     flashThenConfetti();
   });
 }
