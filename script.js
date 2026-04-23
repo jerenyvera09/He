@@ -16,14 +16,14 @@
 
 const NAME = 'Hellen';
 
-const customPhrase = '"Que este año te devuelva en sonrisas todo lo bonito que das."';
+const customPhrase = '"Que esta noche te abrace bonito y te recuerde lo mucho que vales."';
 
 // Mensaje corto y emocional (sin bloques largos)
 const messageLines = [
   `Feliz cumpleaños, ${NAME}.`,
-  'Hoy no quería dejar pasar tu día.',
-  'Que todo lo bonito te encuentre sin prisa…',
-  'y que sonrías mucho, de verdad.',
+  'Hoy quise dejarte un momento bonito.',
+  'Que lo dulce te encuentre sin prisa…',
+  'y que te sientas muy querida.',
 ];
 
 const PHOTO_FALLBACKS = [
@@ -66,10 +66,19 @@ const phraseEl = $('#phrase');
 const typed = $('#typed');
 const btnCelebrate = $('#btnCelebrate');
 const btnReplay = $('#btnReplay');
+const btnBack = $('#btnBack');
+const btnMusic = $('#btnMusic');
 const hint = $('#hint');
+const footerLine = $('#footerLine');
+const secretNote = $('#secretNote');
+const tapHint = $('#tapHint');
+const celebrateOverlay = $('#celebrateOverlay');
 const flash = $('#flash');
 const shootingLayer = $('#shooting');
 const magicLayer = $('#magic');
+
+const musicLabel = btnMusic ? btnMusic.querySelector('[data-music-label]') : null;
+const musicIcon = btnMusic ? btnMusic.querySelector('.icon') : null;
 
 // -----------------------------
 // Performance: ajustes para móvil
@@ -94,6 +103,155 @@ let hasOpened = false;
 let typingLines = [];
 let typingLineIndex = 0;
 let typingLineTimer = null;
+let sceneTimers = [];
+let musicContext = null;
+let musicMasterGain = null;
+let musicFilter = null;
+let musicTimer = null;
+let musicStep = 0;
+let musicNextTime = 0;
+let musicPlaying = false;
+
+const musicPattern = [
+  [293.66, 369.99, 440.00],
+  [246.94, 293.66, 369.99],
+  [196.00, 246.94, 293.66],
+  [220.00, 277.18, 329.63],
+  [246.94, 329.63, 392.00],
+  [293.66, 392.00, 466.16],
+  [261.63, 329.63, 392.00],
+  [220.00, 293.66, 349.23],
+];
+
+function clearSceneTimers(){
+  for (const timer of sceneTimers) window.clearTimeout(timer);
+  sceneTimers = [];
+}
+
+function queueSceneTimer(callback, delay){
+  const timer = window.setTimeout(callback, delay);
+  sceneTimers.push(timer);
+  return timer;
+}
+
+function updateMusicButton(isPlaying){
+  if (!btnMusic) return;
+  musicPlaying = isPlaying;
+  btnMusic.classList.toggle('is-playing', isPlaying);
+  btnMusic.setAttribute('aria-pressed', String(isPlaying));
+  btnMusic.setAttribute('aria-label', isPlaying ? 'Pausar música' : 'Activar música');
+  if (musicLabel) musicLabel.textContent = isPlaying ? 'Pausar' : 'Música';
+  if (musicIcon) musicIcon.textContent = isPlaying ? '❚❚' : '♪';
+}
+
+function clearOverlayState(){
+  if (!celebrateOverlay) return;
+  celebrateOverlay.classList.remove('show');
+}
+
+function ensureMusicEngine(){
+  if (musicContext) return musicContext;
+  const AudioCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtor) return null;
+
+  musicContext = new AudioCtor();
+  musicFilter = musicContext.createBiquadFilter();
+  musicFilter.type = 'lowpass';
+  musicFilter.frequency.value = 1400;
+  musicFilter.Q.value = 0.7;
+
+  const delay = musicContext.createDelay(0.35);
+  delay.delayTime.value = 0.18;
+  const feedback = musicContext.createGain();
+  feedback.gain.value = 0.14;
+  const delayOutput = musicContext.createGain();
+  delayOutput.gain.value = 0.28;
+
+  musicMasterGain = musicContext.createGain();
+  musicMasterGain.gain.value = 0.0001;
+
+  musicFilter.connect(delay);
+  delay.connect(feedback);
+  feedback.connect(delay);
+  delay.connect(delayOutput);
+  musicFilter.connect(delayOutput);
+  delayOutput.connect(musicMasterGain);
+  musicMasterGain.connect(musicContext.destination);
+
+  return musicContext;
+}
+
+function scheduleMusicStep(){
+  if (!musicContext || !musicMasterGain || !musicFilter) return;
+
+  const now = musicContext.currentTime;
+  const startTime = Math.max(now + 0.04, musicNextTime);
+  const chord = musicPattern[musicStep % musicPattern.length];
+
+  chord.forEach((frequency, index) => {
+    const oscillator = musicContext.createOscillator();
+    const gain = musicContext.createGain();
+    oscillator.type = index === 1 ? 'triangle' : 'sine';
+    oscillator.frequency.setValueAtTime(frequency, startTime);
+    oscillator.detune.setValueAtTime(index === 0 ? -5 : index === 2 ? 6 : 0, startTime);
+
+    const peak = index === 1 ? 0.018 : 0.014;
+    gain.gain.setValueAtTime(0.0001, startTime);
+    gain.gain.exponentialRampToValueAtTime(peak, startTime + 0.06);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.9);
+
+    oscillator.connect(gain).connect(musicFilter);
+    oscillator.start(startTime);
+    oscillator.stop(startTime + 1.05);
+  });
+
+  musicStep += 1;
+  musicNextTime = startTime + 0.82;
+}
+
+async function startMusic(){
+  const context = ensureMusicEngine();
+  if (!context) return;
+  if (context.state === 'suspended') await context.resume();
+
+  if (!musicTimer){
+    musicStep = 0;
+    musicNextTime = context.currentTime + 0.18;
+    scheduleMusicStep();
+    musicTimer = window.setInterval(() => {
+      if (!musicContext || musicContext.state !== 'running') return;
+      const lookAhead = musicContext.currentTime + 0.6;
+      while (musicNextTime < lookAhead){
+        scheduleMusicStep();
+      }
+    }, 120);
+  }
+
+  if (musicMasterGain) musicMasterGain.gain.setTargetAtTime(0.3, context.currentTime, 0.14);
+  updateMusicButton(true);
+}
+
+async function pauseMusic(){
+  if (!musicContext) return;
+  if (musicMasterGain) musicMasterGain.gain.setTargetAtTime(0.0001, musicContext.currentTime, 0.08);
+  if (musicTimer){
+    window.clearInterval(musicTimer);
+    musicTimer = null;
+  }
+  if (musicContext.state === 'running') await musicContext.suspend();
+  updateMusicButton(false);
+}
+
+async function toggleMusic(){
+  if (musicPlaying) await pauseMusic();
+  else await startMusic();
+}
+
+function revealSecretNote(){
+  if (!secretNote || !secretNote.hidden) return;
+  secretNote.hidden = false;
+  secretNote.classList.add('reveal');
+}
 
 function mulberry32(seed){
   let t = seed >>> 0;
@@ -139,18 +297,18 @@ function buildPetals(){
 
     // Más orgánico: mayoría cerca del centro + pocos libres en los bordes
     let x = rnd() * 100;
-    if (rnd() < 0.58){
-      x = 50 + (rnd() * 2 - 1) * 16;
+    if (rnd() < 0.46){
+      x = 50 + (rnd() * 2 - 1) * 22;
     }
     x = Math.max(4, Math.min(96, x));
-    let size = (isMobileLike() ? 10 : 12) + rnd() * (isMobileLike() ? 10 : 14);
+    let size = (isMobileLike() ? 8.5 : 10.5) + rnd() * (isMobileLike() ? 8 : 11);
     let dur = (isMobileLike() ? 12 : 14) + rnd() * (isMobileLike() ? 10 : 12);
     const delay = -rnd() * dur;
-    const sway = (rnd() * 2 - 1) * (isMobileLike() ? 16 : 24);
+    const sway = (rnd() * 2 - 1) * (isMobileLike() ? 14 : 22);
     const rot = (rnd() * 2 - 1) * 35;
     const spin = (rnd() < 0.5 ? -1 : 1) * (110 + rnd() * 160);
     const sc = 0.78 + rnd() * 0.55;
-    let o = 0.18 + rnd() * 0.46;
+    let o = 0.12 + rnd() * 0.34;
 
     const depthBlur = rnd();
     const blur = depthBlur < 0.20 ? (0.95 + rnd() * 1.5)
@@ -617,7 +775,7 @@ function flashThenConfetti(){
   );
 
   window.setTimeout(() => {
-    launchConfetti(120);
+    launchConfetti(150);
   }, 170);
 }
 
@@ -635,8 +793,23 @@ function celebrateWithImpact(){
   }
 
   boostPetals();
+  queueSceneTimer(() => boostPetals(), 140);
   emitMagicBubbles();
+  if (celebrateOverlay){
+    celebrateOverlay.classList.remove('show');
+    celebrateOverlay.animate(
+      [
+        { opacity: 0 },
+        { opacity: 1, offset: 0.12 },
+        { opacity: 1, offset: 0.76 },
+        { opacity: 0 },
+      ],
+      { duration: 2300, easing: 'cubic-bezier(.2,.85,.2,1)', fill: 'both' }
+    );
+    window.requestAnimationFrame(() => celebrateOverlay.classList.add('show'));
+  }
   flashThenConfetti();
+  queueSceneTimer(() => clearOverlayState(), 2400);
 }
 
 function burstSparklesFromElement(el){
@@ -794,15 +967,53 @@ function resetParallax(){
 function showScene(){
   if (!scene) return;
   scene.hidden = false;
+  scene.classList.remove('ready');
+  clearSceneTimers();
+  if (secretNote){
+    secretNote.hidden = true;
+    secretNote.classList.remove('reveal');
+  }
   // Asegura que las imágenes tengan src (algunos navegadores difieren el render si estaba hidden)
   loadPhotos();
 
   // Secuencia de aparición (no todo al mismo tiempo)
   window.requestAnimationFrame(() => {
-    window.setTimeout(() => {
+    queueSceneTimer(() => {
       scene.classList.add('ready');
     }, 80);
   });
+}
+
+function hideSceneToIntro(){
+  if (!scene || !intro) return;
+
+  clearSceneTimers();
+  stopTyping();
+  pauseMusic();
+
+  scene.animate(
+    [
+      { opacity: 1, transform: 'translateY(0) scale(1)', filter: 'blur(0px)' },
+      { opacity: 0, transform: 'translateY(10px) scale(.985)', filter: 'blur(10px)' },
+    ],
+    { duration: 420, easing: 'cubic-bezier(.2,.85,.2,1)', fill: 'forwards' }
+  );
+
+  intro.style.display = '';
+  document.body.classList.add('intro-mode');
+  intro.animate(
+    [
+      { opacity: 0, transform: 'translateY(8px) scale(.985)', filter: 'blur(10px)' },
+      { opacity: 1, transform: 'translateY(0) scale(1)', filter: 'blur(0px)' },
+    ],
+    { duration: 500, easing: 'cubic-bezier(.2,.85,.2,1)', fill: 'both' }
+  );
+
+  queueSceneTimer(() => {
+    scene.hidden = true;
+    scene.classList.remove('ready');
+    typed.textContent = '';
+  }, 380);
 }
 
 function hideIntro(){
@@ -822,7 +1033,7 @@ function boostPetals(){
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   const rnd = mulberry32((Date.now() ^ 0xBADA55) >>> 0);
-  const extra = isMobileLike() ? 6 : 9;
+  const extra = isMobileLike() ? 5 : 8;
 
   for (let i = 0; i < extra; i++){
     const p = document.createElement('i');
@@ -831,14 +1042,14 @@ function boostPetals(){
     p.className = `petal ${variant}`;
 
     const x = 50 + (rnd() * 2 - 1) * 14;
-    const size = (isMobileLike() ? 12 : 14) + rnd() * (isMobileLike() ? 10 : 14);
-    const dur = (isMobileLike() ? 7.2 : 6.6) + rnd() * (isMobileLike() ? 2.8 : 3.4);
+    const size = (isMobileLike() ? 9.5 : 11.5) + rnd() * (isMobileLike() ? 8 : 11);
+    const dur = (isMobileLike() ? 7.2 : 6.6) + rnd() * (isMobileLike() ? 2.6 : 3.0);
     const delay = -rnd() * 0.3;
-    const sway = (rnd() * 2 - 1) * (isMobileLike() ? 14 : 20);
+    const sway = (rnd() * 2 - 1) * (isMobileLike() ? 12 : 18);
     const rot = (rnd() * 2 - 1) * 30;
     const spin = (rnd() < 0.5 ? -1 : 1) * (120 + rnd() * 180);
     const sc = 0.9 + rnd() * 0.55;
-    const o = 0.42 + rnd() * 0.28;
+    const o = 0.36 + rnd() * 0.22;
     const blur = (rnd() < 0.35) ? (0.8 + rnd() * 1.2) : (0.2 + rnd() * 0.6);
 
     p.style.setProperty('--x', Math.max(6, Math.min(94, x)).toFixed(2) + '%');
@@ -928,9 +1139,54 @@ startShootingStars();
 
 if (headline) headline.textContent = NAME;
 if (phraseEl) phraseEl.textContent = customPhrase;
-if (subline) subline.textContent = 'Que esta noche te recuerde lo valiosa que eres.';
+if (subline) subline.textContent = 'Un momento pequeño para celebrar todo lo hermoso que eres.';
 
 if (btnOpen) btnOpen.addEventListener('click', openExperience);
+
+if (btnBack){
+  btnBack.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hasOpened = false;
+    hideSceneToIntro();
+  });
+}
+
+if (btnMusic){
+  btnMusic.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleMusic();
+  });
+}
+
+if (footerLine){
+  footerLine.setAttribute('role', 'button');
+  footerLine.setAttribute('tabindex', '0');
+  footerLine.addEventListener('click', revealSecretNote);
+  footerLine.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      revealSecretNote();
+    }
+  });
+}
+
+if (tapHint){
+  tapHint.addEventListener('click', (e) => {
+    e.stopPropagation();
+    revealSecretNote();
+    if (secretNote && !secretNote.hidden){
+      secretNote.animate(
+        [
+          { transform: 'translateY(0) scale(.98)', opacity: .4 },
+          { transform: 'translateY(-2px) scale(1.02)', opacity: 1 },
+          { transform: 'translateY(0) scale(1)', opacity: 1 },
+        ],
+        { duration: 620, easing: 'cubic-bezier(.2,.85,.2,1)' }
+      );
+    }
+    burstSparklesFromElement(tapHint);
+  });
+}
 
 if (scene){
   // En móvil (touch), el parallax suele causar lag.
@@ -946,3 +1202,5 @@ if (btnCelebrate){
     celebrateWithImpact();
   });
 }
+
+updateMusicButton(false);

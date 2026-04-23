@@ -16,6 +16,13 @@
   <canvas id="vortex" aria-hidden="true"></canvas>
   <div id="flash" aria-hidden="true"></div>
   <div id="magic" class="magic" aria-hidden="true"></div>
+  <div id="celebrateOverlay" class="celebrateOverlay" aria-hidden="true">
+    <div class="celebrateCard">
+      <div class="celebrateIcon" aria-hidden="true">💖</div>
+      <div class="celebrateTitle">Feliz cumpleaños 💖</div>
+      <div class="celebrateText">Eres muy especial</div>
+    </div>
+  </div>
 
   <div class="bg" aria-hidden="true">
     <div class="glow"></div>
@@ -57,6 +64,17 @@
     <!-- 3) Sección principal -->
     <section class="scene" id="scene" aria-label="Sorpresa de cumpleaños" hidden>
       <article class="panel" id="panel">
+        <div class="sceneBar" aria-label="Controles de la sorpresa">
+          <button class="iconBtn subtle" id="btnBack" type="button" aria-label="Volver a la pantalla principal">
+            <span class="icon" aria-hidden="true">↩</span>
+            <span class="label">Volver</span>
+          </button>
+          <button class="iconBtn music" id="btnMusic" type="button" aria-pressed="false" aria-label="Activar música">
+            <span class="icon" aria-hidden="true">♪</span>
+            <span class="label" data-music-label>Música</span>
+          </button>
+        </div>
+
         <div class="hero">
           <div class="heroKicker">PARA</div>
           <h1 class="heroTitle" id="headline">Hellen</h1>
@@ -90,6 +108,9 @@
         <footer class="footer">
           <div class="footerLine" id="footerLine">Hecho con cariño 💛</div>
         </footer>
+
+        <button class="tapHint" id="tapHint" type="button" aria-label="Mostrar un mensaje oculto">Toca aquí</button>
+        <div class="secretNote" id="secretNote" hidden>Guardé una sonrisa extra para ti aquí también.</div>
       </article>
     </section>
   </main>
