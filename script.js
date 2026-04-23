@@ -84,18 +84,18 @@ const magicLayer = $('#magic');
 const musicLabel = btnMusic ? btnMusic.querySelector('[data-music-label]') : null;
 const musicIcon = btnMusic ? btnMusic.querySelector('.icon') : null;
 
-const MUSIC_SRC = 'assets/music/kiss-the-rain.mp3';
+const MUSIC_SRC = 'assets/music/a-thousand-years-piano.mp3';
 const MUSIC_VOLUME = 0.3;
 const MUSIC_FADE_IN_MS = 900;
 const MUSIC_FADE_OUT_MS = 320;
-const SECRET_NOTE_VISIBLE_MS = 5800;
-const SECRET_NOTE_HIDE_MS = 760;
+const SECRET_NOTE_VISIBLE_MS = 6200;
+const SECRET_NOTE_HIDE_MS = 820;
 const CELEBRATE_OVERLAY_MS = 4800;
 const CELEBRATE_CLEAR_MS = 5000;
-const SECRET_NOTE_MESSAGE = `Si llegaste hasta aquí… es porque esto era para ti 💌
-No es algo grande… pero está hecho con todo mi cariño 💖
-Ojalá esta pequeña sorpresa te saque una sonrisa…
-porque verte feliz… vale todo ✨🌸`;
+const SECRET_NOTE_MESSAGE = `Si llegaste hasta aquí…
+es porque esto era para ti 💌
+Gracias por tomarte el tiempo de mirar este pequeño detalle…
+lo hice con mucho cariño para sacarte una sonrisa 💖✨`;
 
 // -----------------------------
 // Performance: ajustes para móvil
