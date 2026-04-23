@@ -18,6 +18,7 @@
   <div id="magic" class="magic" aria-hidden="true"></div>
   <div id="celebrateOverlay" class="celebrateOverlay" aria-hidden="true">
     <div class="celebrateCard">
+      <div class="celebrateEyebrow">Con mucho cariño</div>
       <div class="celebrateIcon" aria-hidden="true">💖</div>
       <div class="celebrateTitle">Feliz cumpleaños 💖</div>
       <div class="celebrateText">Eres muy especial</div>
@@ -93,10 +94,17 @@
           </figure>
         </div>
 
-        <div class="lines" aria-label="Mensaje">
-          <div class="linesTitle">Un mensajito</div>
-          <div class="linesText" role="status" aria-live="polite">
-            <span id="typed"></span><span class="caret" aria-hidden="true">▍</span>
+        <div class="messageStack">
+          <div class="lines" aria-label="Mensaje">
+            <div class="linesTitle">Un mensajito</div>
+            <div class="linesText" role="status" aria-live="polite">
+              <span id="typed"></span><span class="caret" aria-hidden="true">▍</span>
+            </div>
+          </div>
+
+          <div class="messageAside" aria-label="Detalle oculto">
+            <button class="tapHint" id="tapHint" type="button" aria-label="Mostrar un mensaje oculto">Toca aquí</button>
+            <div class="secretNote" id="secretNote" hidden>Este detallito fue hecho pensando en ti 💖</div>
           </div>
         </div>
 
@@ -108,9 +116,6 @@
         <footer class="footer">
           <div class="footerLine" id="footerLine">Hecho con cariño 💛</div>
         </footer>
-
-        <button class="tapHint" id="tapHint" type="button" aria-label="Mostrar un mensaje oculto">Toca aquí</button>
-        <div class="secretNote" id="secretNote" hidden>Guardé una sonrisa extra para ti aquí también.</div>
       </article>
     </section>
   </main>

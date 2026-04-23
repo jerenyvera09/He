@@ -64,6 +64,7 @@ const headline = $('#headline');
 const subline = $('#sub');
 const phraseEl = $('#phrase');
 const typed = $('#typed');
+const linesText = typed ? typed.parentElement : null;
 const btnCelebrate = $('#btnCelebrate');
 const btnReplay = $('#btnReplay');
 const btnBack = $('#btnBack');
@@ -73,6 +74,8 @@ const footerLine = $('#footerLine');
 const secretNote = $('#secretNote');
 const tapHint = $('#tapHint');
 const celebrateOverlay = $('#celebrateOverlay');
+const celebrateTitle = celebrateOverlay ? celebrateOverlay.querySelector('.celebrateTitle') : null;
+const celebrateText = celebrateOverlay ? celebrateOverlay.querySelector('.celebrateText') : null;
 const flash = $('#flash');
 const shootingLayer = $('#shooting');
 const magicLayer = $('#magic');
@@ -251,6 +254,7 @@ function revealSecretNote(){
   if (!secretNote || !secretNote.hidden) return;
   secretNote.hidden = false;
   secretNote.classList.add('reveal');
+  if (tapHint) tapHint.classList.add('is-revealed');
 }
 
 function mulberry32(seed){
@@ -511,6 +515,7 @@ function stopTyping(){
   typingTimer = null;
   if (typingLineTimer) window.clearTimeout(typingLineTimer);
   typingLineTimer = null;
+  if (linesText) linesText.classList.remove('is-typing', 'is-done');
 }
 
 function startTyping(){
@@ -520,6 +525,7 @@ function startTyping(){
   typingLineIndex = 0;
   typingLines = messageLines.map((line) => line.trimEnd()).filter(Boolean);
   typed.textContent = '';
+  if (linesText) linesText.classList.add('is-typing');
   typeNextLine();
 }
 
@@ -527,6 +533,10 @@ function typeNextLine(){
   const line = typingLines[typingLineIndex];
   if (line == null){
     typingLineTimer = null;
+    if (linesText){
+      linesText.classList.remove('is-typing');
+      linesText.classList.add('is-done');
+    }
     return;
   }
 
@@ -541,13 +551,13 @@ function typeNextLine(){
 }
 
 function typeTick(lineEl, line){
-  const baseDelay = 18;
+  const baseDelay = 22;
   const ch = line[typingIndex];
   if (ch == null){
     lineEl.classList.add('done');
     typingIndex = 0;
     typingLineIndex++;
-    typingLineTimer = window.setTimeout(typeNextLine, 180);
+    typingLineTimer = window.setTimeout(typeNextLine, 260);
     return;
   }
 
@@ -555,8 +565,8 @@ function typeTick(lineEl, line){
   typingIndex++;
 
   let delay = baseDelay;
-  if (ch === '.' || ch === '…') delay = 180;
-  if (ch === ',') delay = 90;
+  if (ch === '.' || ch === '!' || ch === '?' || ch === '…') delay = 210;
+  if (ch === ',') delay = 105;
 
   typingTimer = window.setTimeout(() => typeTick(lineEl, line), delay);
 }
@@ -775,7 +785,7 @@ function flashThenConfetti(){
   );
 
   window.setTimeout(() => {
-    launchConfetti(150);
+    launchConfetti(136);
   }, 170);
 }
 
@@ -794,6 +804,7 @@ function celebrateWithImpact(){
 
   boostPetals();
   queueSceneTimer(() => boostPetals(), 140);
+  queueSceneTimer(() => boostPetals(), 360);
   emitMagicBubbles();
   if (celebrateOverlay){
     celebrateOverlay.classList.remove('show');
@@ -804,12 +815,16 @@ function celebrateWithImpact(){
         { opacity: 1, offset: 0.76 },
         { opacity: 0 },
       ],
-      { duration: 2300, easing: 'cubic-bezier(.2,.85,.2,1)', fill: 'both' }
+      { duration: 2500, easing: 'cubic-bezier(.2,.85,.2,1)', fill: 'both' }
     );
     window.requestAnimationFrame(() => celebrateOverlay.classList.add('show'));
   }
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight * (isMobileLike() ? 0.42 : 0.44);
+  queueSceneTimer(() => burstSparklesAt(centerX, centerY, isMobileLike() ? 12 : 18, 24, 70), 140);
+  queueSceneTimer(() => burstSparklesAt(centerX, centerY - 10, isMobileLike() ? 10 : 14, 16, 54), 420);
   flashThenConfetti();
-  queueSceneTimer(() => clearOverlayState(), 2400);
+  queueSceneTimer(() => clearOverlayState(), 2600);
 }
 
 function burstSparklesFromElement(el){
@@ -819,13 +834,16 @@ function burstSparklesFromElement(el){
   const r = el.getBoundingClientRect();
   const x = r.left + r.width / 2;
   const y = r.top + r.height / 2;
-  const count = 10;
+  burstSparklesAt(x, y, 10, 18, 40);
+}
 
+function burstSparklesAt(x, y, count = 10, minMag = 18, maxMag = 40){
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   for (let i = 0; i < count; i++){
     const p = document.createElement('i');
     p.className = 'sparkParticle';
-    const a = (Math.PI * 2 * i) / count;
-    const mag = 18 + Math.random() * 22;
+    const a = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.18;
+    const mag = minMag + Math.random() * (maxMag - minMag);
     const dx = Math.cos(a) * mag;
     const dy = Math.sin(a) * mag;
     p.style.setProperty('--x', x.toFixed(1) + 'px');
@@ -853,19 +871,19 @@ function emitMagicBubbles(){
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  // Origen: abajo a la izquierda (elegante, no caricaturesco)
-  const originX = Math.max(24, Math.min(vw * 0.18, vw - 40));
-  const originY = vh - Math.max(28, Math.min(vh * 0.12, 120));
+  // Origen: parte baja y centrada, para acompaÃ±ar el overlay sin verse suelto
+  const originX = vw * 0.5;
+  const originY = vh - Math.max(44, Math.min(vh * 0.16, 150));
 
-  const count = isMobileLike() ? 8 : 12;
+  const count = isMobileLike() ? 10 : 14;
   for (let i = 0; i < count; i++){
     const b = document.createElement('i');
     b.className = 'magicBubble bubble';
 
-    const size = (isMobileLike() ? 10 : 12) + Math.random() * (isMobileLike() ? 18 : 24);
-    const sx = originX + (Math.random() - 0.5) * 46;
-    const sy = originY + (Math.random() - 0.5) * 28;
-    const dx = (Math.random() - 0.15) * 140;
+    const size = (isMobileLike() ? 9 : 11) + Math.random() * (isMobileLike() ? 14 : 20);
+    const sx = originX + (Math.random() - 0.5) * 80;
+    const sy = originY + (Math.random() - 0.5) * 30;
+    const dx = (Math.random() - 0.5) * 180;
     const dy = -(220 + Math.random() * (isMobileLike() ? 220 : 360));
     const dur = 1100 + Math.random() * (isMobileLike() ? 650 : 850);
     const sc = 0.72 + Math.random() * 0.6;
@@ -883,21 +901,6 @@ function emitMagicBubbles(){
     magicLayer.appendChild(b);
     b.addEventListener('animationend', () => b.remove(), { once: true });
   }
-
-  // Burbuja principal centrada con texto
-  window.setTimeout(() => {
-    const main = document.createElement('div');
-    main.className = 'magicBubble main';
-
-    const text = document.createElement('div');
-    text.className = 'magicText';
-    text.textContent = 'Feliz cumpleaños 🎂';
-
-    main.appendChild(text);
-    magicLayer.appendChild(main);
-
-    main.addEventListener('animationend', () => main.remove(), { once: true });
-  }, 520);
 }
 
 if (btnReplay){
@@ -973,6 +976,7 @@ function showScene(){
     secretNote.hidden = true;
     secretNote.classList.remove('reveal');
   }
+  if (tapHint) tapHint.classList.remove('is-revealed');
   // Asegura que las imágenes tengan src (algunos navegadores difieren el render si estaba hidden)
   loadPhotos();
 
@@ -1140,6 +1144,9 @@ startShootingStars();
 if (headline) headline.textContent = NAME;
 if (phraseEl) phraseEl.textContent = customPhrase;
 if (subline) subline.textContent = 'Un momento pequeño para celebrar todo lo hermoso que eres.';
+if (secretNote) secretNote.textContent = 'Este detallito fue hecho pensando en ti 💖';
+if (celebrateTitle) celebrateTitle.textContent = `Feliz cumpleaños, ${NAME} 💖`;
+if (celebrateText) celebrateText.textContent = 'Eres muy especial';
 
 if (btnOpen) btnOpen.addEventListener('click', openExperience);
 
