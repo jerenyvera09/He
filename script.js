@@ -20,10 +20,10 @@ const customPhrase = '"Que este año te devuelva en sonrisas todo lo bonito que 
 
 // Mensaje corto y emocional (sin bloques largos)
 const messageLines = [
-  `Feliz cumpleaños, ${NAME}.\n`,
-  'Hoy no quería dejar pasar tu día.\n',
-  'Que todo lo bonito te encuentre sin prisa…\n',
-  'y que sonrías mucho, de verdad.\n',
+  `Feliz cumpleaños, ${NAME}.`,
+  'Hoy no quería dejar pasar tu día.',
+  'Que todo lo bonito te encuentre sin prisa…',
+  'y que sonrías mucho, de verdad.',
 ];
 
 const PHOTO_FALLBACKS = [
@@ -91,6 +91,9 @@ let typingTimer = null;
 let typingIndex = 0;
 let typingText = '';
 let hasOpened = false;
+let typingLines = [];
+let typingLineIndex = 0;
+let typingLineTimer = null;
 
 function mulberry32(seed){
   let t = seed >>> 0;
@@ -134,20 +137,29 @@ function buildPetals(){
     const variant = pickVariant();
     p.className = `petal ${variant}`;
 
-    const x = rnd() * 100;
+    // Más orgánico: mayoría cerca del centro + pocos libres en los bordes
+    let x = rnd() * 100;
+    if (rnd() < 0.58){
+      x = 50 + (rnd() * 2 - 1) * 16;
+    }
+    x = Math.max(4, Math.min(96, x));
     let size = (isMobileLike() ? 10 : 12) + rnd() * (isMobileLike() ? 10 : 14);
-    const dur = (isMobileLike() ? 12 : 14) + rnd() * (isMobileLike() ? 10 : 12);
+    let dur = (isMobileLike() ? 12 : 14) + rnd() * (isMobileLike() ? 10 : 12);
     const delay = -rnd() * dur;
-    const sway = (rnd() * 2 - 1) * (isMobileLike() ? 18 : 28);
+    const sway = (rnd() * 2 - 1) * (isMobileLike() ? 16 : 24);
     const rot = (rnd() * 2 - 1) * 35;
     const spin = (rnd() < 0.5 ? -1 : 1) * (110 + rnd() * 160);
     const sc = 0.78 + rnd() * 0.55;
     let o = 0.18 + rnd() * 0.46;
 
     const depthBlur = rnd();
-    const blur = depthBlur < 0.22 ? (0.9 + rnd() * 1.4)
+    const blur = depthBlur < 0.20 ? (0.95 + rnd() * 1.5)
       : depthBlur < 0.45 ? (0.35 + rnd() * 0.7)
         : (0 + rnd() * 0.35);
+
+    // Profundidad: los más borrosos (cerca) caen un poco más lento
+    if (blur > 0.9) dur *= 1.08;
+    if (blur < 0.2) dur *= 0.96;
 
     // Variación sutil por tipo (premium): champagne/gold un poco más "etéreo"
     if (variant === 'p4'){
@@ -156,6 +168,7 @@ function buildPetals(){
     } else if (variant === 'p5'){
       o *= 0.84;
       size *= 0.95;
+      dur *= 1.06;
     }
 
     p.style.setProperty('--x', x.toFixed(2) + '%');
@@ -338,33 +351,56 @@ function escapeXml(s){
 function stopTyping(){
   if (typingTimer) window.clearTimeout(typingTimer);
   typingTimer = null;
+  if (typingLineTimer) window.clearTimeout(typingLineTimer);
+  typingLineTimer = null;
 }
 
 function startTyping(){
   stopTyping();
   typingIndex = 0;
-  typingText = messageLines.join('');
+  typingText = '';
+  typingLineIndex = 0;
+  typingLines = messageLines.map((line) => line.trimEnd()).filter(Boolean);
   typed.textContent = '';
-  typeTick();
+  typeNextLine();
 }
 
-function typeTick(){
-  const baseDelay = 18;
-  const ch = typingText[typingIndex];
-  if (ch == null){
-    typingTimer = null;
+function typeNextLine(){
+  const line = typingLines[typingLineIndex];
+  if (line == null){
+    typingLineTimer = null;
     return;
   }
 
-  typed.textContent += ch;
+  const lineEl = document.createElement('span');
+  lineEl.className = 'typedLine';
+  typed.appendChild(lineEl);
+
+  window.requestAnimationFrame(() => {
+    lineEl.classList.add('show');
+    typeTick(lineEl, line);
+  });
+}
+
+function typeTick(lineEl, line){
+  const baseDelay = 18;
+  const ch = line[typingIndex];
+  if (ch == null){
+    lineEl.classList.add('done');
+    typingIndex = 0;
+    typingLineIndex++;
+    typingLineTimer = window.setTimeout(typeNextLine, 180);
+    return;
+  }
+
+  lineEl.textContent += ch;
   typingIndex++;
 
   let delay = baseDelay;
-  if (ch === '\n') delay = 120;
   if (ch === '.' || ch === '…') delay = 180;
   if (ch === ',') delay = 90;
 
-  typingTimer = window.setTimeout(typeTick, delay);
+  typingTimer = window.setTimeout(() => typeTick(lineEl, line), delay);
 }
 
 // -----------------------------
@@ -585,6 +621,24 @@ function flashThenConfetti(){
   }, 170);
 }
 
+function celebrateWithImpact(){
+  if (btnCelebrate){
+    btnCelebrate.animate(
+      [
+        { transform: 'translateY(0) scale(1)', filter: 'brightness(1)' },
+        { transform: 'translateY(-2px) scale(1.04)', filter: 'brightness(1.08)' },
+        { transform: 'translateY(0) scale(1.01)', filter: 'brightness(1.02)' },
+      ],
+      { duration: 620, easing: 'cubic-bezier(.2,.85,.2,1)' }
+    );
+    burstSparklesFromElement(btnCelebrate);
+  }
+
+  boostPetals();
+  emitMagicBubbles();
+  flashThenConfetti();
+}
+
 function burstSparklesFromElement(el){
   if (!el) return;
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -762,9 +816,87 @@ function hideIntro(){
   );
 }
 
+function boostPetals(){
+  const layer = $('#petals');
+  if (!layer) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const rnd = mulberry32((Date.now() ^ 0xBADA55) >>> 0);
+  const extra = isMobileLike() ? 6 : 9;
+
+  for (let i = 0; i < extra; i++){
+    const p = document.createElement('i');
+    const r = rnd();
+    const variant = r < 0.70 ? (rnd() < 0.5 ? 'p1' : 'p2') : (r < 0.90 ? 'p4' : 'p5');
+    p.className = `petal ${variant}`;
+
+    const x = 50 + (rnd() * 2 - 1) * 14;
+    const size = (isMobileLike() ? 12 : 14) + rnd() * (isMobileLike() ? 10 : 14);
+    const dur = (isMobileLike() ? 7.2 : 6.6) + rnd() * (isMobileLike() ? 2.8 : 3.4);
+    const delay = -rnd() * 0.3;
+    const sway = (rnd() * 2 - 1) * (isMobileLike() ? 14 : 20);
+    const rot = (rnd() * 2 - 1) * 30;
+    const spin = (rnd() < 0.5 ? -1 : 1) * (120 + rnd() * 180);
+    const sc = 0.9 + rnd() * 0.55;
+    const o = 0.42 + rnd() * 0.28;
+    const blur = (rnd() < 0.35) ? (0.8 + rnd() * 1.2) : (0.2 + rnd() * 0.6);
+
+    p.style.setProperty('--x', Math.max(6, Math.min(94, x)).toFixed(2) + '%');
+    p.style.setProperty('--w', size.toFixed(2) + 'px');
+    p.style.setProperty('--dur', dur.toFixed(2) + 's');
+    p.style.setProperty('--delay', delay.toFixed(2) + 's');
+    p.style.setProperty('--sway', sway.toFixed(2) + 'px');
+    p.style.setProperty('--r', rot.toFixed(1) + 'deg');
+    p.style.setProperty('--spin', spin.toFixed(1) + 'deg');
+    p.style.setProperty('--sc', sc.toFixed(2));
+    p.style.setProperty('--o', o.toFixed(2));
+    p.style.setProperty('--blur', blur.toFixed(2) + 'px');
+
+    layer.appendChild(p);
+
+    // Limpieza: no acumular nodos
+    window.setTimeout(() => p.remove(), Math.round(dur * 1000) + 400);
+  }
+}
+
 function openExperience(){
   if (hasOpened) return;
   hasOpened = true;
+
+  // Momento wow: micro-pop + destello suave (premium, no invasivo)
+  if (btnOpen){
+    btnOpen.classList.add('pop');
+    window.setTimeout(() => btnOpen.classList.remove('pop'), 560);
+  }
+  if (flash){
+    flash.animate(
+      [
+        { opacity: 0, transform: 'translateZ(0)' },
+        { opacity: 1, transform: 'translateZ(0)' },
+        { opacity: 0, transform: 'translateZ(0)' },
+      ],
+      { duration: 520, easing: 'cubic-bezier(.2,.85,.2,1)', fill: 'both' }
+    );
+  }
+
+  document.body.classList.add('opening');
+  window.setTimeout(() => document.body.classList.remove('opening'), 720);
+
+  // Aumenta brevemente la sensación de "inicio" con más pétalos cerca del centro
+  boostPetals();
+
+  // Bloom sutil de la card antes de que se desvanezca (cinematográfico)
+  const introInner = document.querySelector('.introInner');
+  if (introInner){
+    introInner.animate(
+      [
+        { transform: 'translateY(0) scale(1)', filter: 'brightness(1) blur(0px)' },
+        { transform: 'translateY(-1px) scale(1.012)', filter: 'brightness(1.04) blur(0px)' },
+        { transform: 'translateY(-2px) scale(1.006)', filter: 'brightness(1.02) blur(1px)' },
+      ],
+      { duration: 520, easing: 'cubic-bezier(.2,.85,.2,1)', fill: 'both' }
+    );
+  }
 
   document.body.classList.remove('intro-mode');
 
@@ -811,7 +943,6 @@ if (scene){
 if (btnCelebrate){
   btnCelebrate.addEventListener('click', (e) => {
     e.stopPropagation();
-    emitMagicBubbles();
-    flashThenConfetti();
+    celebrateWithImpact();
   });
 }
